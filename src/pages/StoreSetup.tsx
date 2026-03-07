@@ -31,7 +31,10 @@ const StoreSetup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      toast.error("Please sign in first to create your store.");
+      return;
+    }
     setLoading(true);
 
     const slug = generateSlug(storeName);
