@@ -1,7 +1,9 @@
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import storvoLogo from "@/assets/storvo-logo.png";
 
 const Navbar = () => {
+  const navigate = useNavigate();
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
@@ -16,8 +18,8 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" className="hidden sm:inline-flex">Log in</Button>
-          <Button variant="hero" size="sm">Create Store</Button>
+          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => navigate("/auth")}>Log in</Button>
+          <Button variant="hero" size="sm" onClick={() => navigate("/auth")}>Create Store</Button>
         </div>
       </div>
     </nav>
