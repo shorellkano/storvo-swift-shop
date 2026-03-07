@@ -47,6 +47,13 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        storvo: {
+          indigo: "hsl(var(--storvo-indigo))",
+          "indigo-dark": "hsl(var(--storvo-indigo-dark))",
+          "indigo-light": "hsl(var(--storvo-indigo-light))",
+          purple: "hsl(var(--storvo-purple))",
+          violet: "hsl(var(--storvo-violet))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -57,6 +64,10 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+      },
+      fontFamily: {
+        display: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+        body: ['Inter', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         lg: "var(--radius)",
