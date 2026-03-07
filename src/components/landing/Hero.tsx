@@ -25,7 +25,7 @@ const Hero = () => {
         >
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium text-muted-foreground shadow-card">
             <Zap className="h-3.5 w-3.5 text-storvo-indigo" />
-            Built for social commerce sellers
+            Build your store in 5 minutes
           </div>
         </motion.div>
 
