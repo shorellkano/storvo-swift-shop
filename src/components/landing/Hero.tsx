@@ -4,6 +4,12 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, ShoppingBag, Zap } from "lucide-react";
 
 const Hero = () => {
+  const navigate = useNavigate();
+
+  const scrollToHowItWorks = () => {
+    document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <section className="relative overflow-hidden pt-32 pb-20 md:pt-40 md:pb-32">
       {/* Background effects */}
