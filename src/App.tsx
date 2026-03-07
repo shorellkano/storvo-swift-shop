@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import AddProduct from "./pages/AddProduct";
 import Orders from "./pages/Orders";
+import StoreSettings from "./pages/StoreSettings";
 import Storefront from "./pages/Storefront";
 import Checkout from "./pages/Checkout";
 import NotFound from "./pages/NotFound";
