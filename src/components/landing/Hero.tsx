@@ -56,12 +56,12 @@ const Hero = () => {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
         >
-          <Button variant="hero" size="xl" className="group">
+          <Button variant="hero" size="xl" className="group" onClick={() => navigate("/auth")}>
             <ShoppingBag className="h-5 w-5" />
             Create Your Free Store
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Button>
-          <Button variant="hero-outline" size="xl">
+          <Button variant="hero-outline" size="xl" onClick={scrollToHowItWorks}>
             See how it works
           </Button>
         </motion.div>
