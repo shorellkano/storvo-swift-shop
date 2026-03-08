@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,11 +11,12 @@ import LogoBrandStep from "@/components/setup/LogoBrandStep";
 import SetupSuccess from "@/components/setup/SetupSuccess";
 
 const StoreSetup = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   // Wizard state
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
 
   // Store details
   const [storeName, setStoreName] = useState("");
@@ -32,6 +33,36 @@ const StoreSetup = () => {
   // Created store ref
   const [createdStoreSlug, setCreatedStoreSlug] = useState("");
   const [createdStoreId, setCreatedStoreId] = useState("");
+
+  // On mount, check if user already has a store (e.g. page refresh after step 1)
+  useEffect(() => {
+    if (authLoading || !user) return;
+
+    const checkExistingStore = async () => {
+      const { data: store } = await supabase
+        .from("stores")
+        .select("id, slug, name, brand_color, logo_url")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (store) {
+        setCreatedStoreId(store.id);
+        setCreatedStoreSlug(store.slug);
+        setStoreName(store.name);
+        setBrandColor(store.brand_color || "#6366F1");
+        if (store.logo_url) {
+          setLogoPreview(store.logo_url);
+        }
+        // If they already have a logo, go to success; otherwise go to branding step
+        setStep(store.logo_url ? 3 : 2);
+      }
+      setInitialCheckDone(true);
+    };
+
+    checkExistingStore();
+  }, [user, authLoading]);
 
   const generateSlug = (name: string) =>
     name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -180,6 +211,14 @@ const StoreSetup = () => {
     center: { opacity: 1, x: 0 },
     exit: { opacity: 0, x: -30 },
   };
+
+  if (!initialCheckDone) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center gradient-hero px-4 py-8">
