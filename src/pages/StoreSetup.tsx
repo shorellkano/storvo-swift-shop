@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import storvoLogo from "@/assets/storvo-logo.png";
 import { motion, AnimatePresence } from "framer-motion";
+import { LogOut } from "lucide-react";
 import SetupProgress from "@/components/setup/SetupProgress";
 import StoreDetailsStep from "@/components/setup/StoreDetailsStep";
 import LogoBrandStep from "@/components/setup/LogoBrandStep";
