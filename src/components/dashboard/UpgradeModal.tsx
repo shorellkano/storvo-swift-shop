@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Check, Crown, Zap } from "lucide-react";
-import { motion } from "framer-motion";
+import { Check, Crown, Zap, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface UpgradeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  storeId: string | null;
   reason?: "limit" | "general";
 }
 
@@ -18,11 +21,37 @@ const PRO_FEATURES = [
   "0% platform transaction fee",
 ];
 
-const UpgradeModal = ({ open, onOpenChange, reason = "general" }: UpgradeModalProps) => {
-  const handleUpgrade = () => {
-    // TODO: Integrate Paystack payment
-    // For now, show as coming soon
-    window.open("https://paystack.com", "_blank");
+const UpgradeModal = ({ open, onOpenChange, storeId, reason = "general" }: UpgradeModalProps) => {
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleUpgrade = async () => {
+    if (!storeId) return;
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("initialize-payment", {
+        body: {
+          store_id: storeId,
+          callback_url: `${window.location.origin}/dashboard?payment=success`,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.authorization_url) {
+        window.location.href = data.authorization_url;
+      } else {
+        throw new Error("No payment URL received");
+      }
+    } catch (err: any) {
+      toast({
+        title: "Payment failed",
+        description: err.message || "Could not start payment. Try again.",
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
   };
 
   return (
@@ -62,8 +91,13 @@ const UpgradeModal = ({ open, onOpenChange, reason = "general" }: UpgradeModalPr
           </ul>
         </div>
 
-        <Button variant="hero" size="lg" className="w-full mt-2" onClick={handleUpgrade}>
-          <Zap className="mr-2 h-4 w-4" /> Upgrade to Pro — ₦3,500/mo
+        <Button variant="hero" size="lg" className="w-full mt-2" onClick={handleUpgrade} disabled={loading}>
+          {loading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Zap className="mr-2 h-4 w-4" />
+          )}
+          {loading ? "Redirecting to Paystack…" : "Upgrade to Pro — ₦3,500/mo"}
         </Button>
         <p className="text-center text-xs text-muted-foreground">
           Powered by Paystack. Cancel anytime.
