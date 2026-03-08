@@ -13,7 +13,7 @@ import SetupSuccess from "@/components/setup/SetupSuccess";
 import PlanSelection from "@/components/setup/PlanSelection";
 
 const StoreSetup = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
 
   // Wizard state: 1=details, 2=brand, 3=plan, 4=success
