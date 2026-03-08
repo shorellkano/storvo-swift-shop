@@ -7,8 +7,9 @@ const Navbar = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 glass">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <div className="flex items-center gap-2">
-          <img src={storvoLogo} alt="Storvo" className="h-10" />
+        <div className="flex items-center gap-3">
+          <img src={storvoLogo} alt="Storvo" className="h-10 w-auto shrink-0" />
+          <span className="font-display text-xl font-bold tracking-tight text-foreground">Storvo</span>
         </div>
 
         <div className="hidden items-center gap-8 md:flex">

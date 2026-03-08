@@ -62,7 +62,12 @@ const DashboardSidebar = ({ store }: DashboardSidebarProps) => {
       <Sidebar collapsible="icon">
         <SidebarContent>
           <div className="flex items-center gap-2 px-4 py-4">
-            {!collapsed && <img src={storvoLogo} alt="Storvo" className="h-6" />}
+            {!collapsed && (
+              <div className="flex items-center gap-2">
+                <img src={storvoLogo} alt="Storvo" className="h-8 w-auto shrink-0" />
+                <span className="font-display text-base font-semibold tracking-tight text-foreground">Storvo</span>
+              </div>
+            )}
             {collapsed && (
               <div className="mx-auto h-8 w-8 rounded-lg gradient-primary flex items-center justify-center">
                 <Store className="h-4 w-4 text-primary-foreground" />
