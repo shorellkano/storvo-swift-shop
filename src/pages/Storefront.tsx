@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, MessageCircle, Share2, Store, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { ShoppingCart, MessageCircle, Share2, Store, X, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { toast } from "sonner";
 
 interface CartItem {
@@ -19,6 +19,7 @@ const Storefront = () => {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchStore = async () => {
@@ -46,7 +47,7 @@ const Storefront = () => {
     fetchStore();
   }, [slug]);
 
-  const addToCart = (product: any) => {
+  const addToCart = useCallback((product: any) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
@@ -58,8 +59,17 @@ const Storefront = () => {
       }
       return [...prev, { product, quantity: 1 }];
     });
+    // Show "Added ✓" feedback on the button
+    setAddedIds((prev) => new Set(prev).add(product.id));
+    setTimeout(() => {
+      setAddedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(product.id);
+        return next;
+      });
+    }, 1200);
     toast.success("Added to cart!");
-  };
+  }, []);
 
   const updateQuantity = (productId: string, delta: number) => {
     setCart((prev) =>
@@ -176,12 +186,16 @@ const Storefront = () => {
                     <div className="mt-3 flex gap-2">
                       <Button
                         size="sm"
-                        className="flex-1 text-xs"
-                        style={{ background: brandColor }}
+                        className="flex-1 text-xs transition-all duration-150 active:scale-95"
+                        style={{ background: addedIds.has(product.id) ? '#22c55e' : brandColor }}
                         disabled={outOfStock}
                         onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                       >
-                        Add to Cart
+                        {addedIds.has(product.id) ? (
+                          <><Check className="mr-1 h-3 w-3" /> Added</>
+                        ) : (
+                          "Add to Cart"
+                        )}
                       </Button>
                       <button
                         onClick={(e) => {
@@ -287,7 +301,7 @@ const Storefront = () => {
                 <div className="flex gap-3 pt-2">
                   <Button
                     size="lg"
-                    className="flex-1 font-semibold"
+                    className="flex-1 font-semibold transition-all duration-150 active:scale-95"
                     style={{ background: brandColor }}
                     disabled={outOfStock}
                     onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}
@@ -366,7 +380,7 @@ const Storefront = () => {
                 </div>
 
                 <Link to={`/store/${slug}/checkout`} state={{ cart, store }}>
-                  <Button size="lg" className="mt-6 w-full" style={{ background: brandColor }}>
+                  <Button size="lg" className="mt-6 w-full transition-all duration-150 active:scale-95" style={{ background: brandColor }}>
                     Checkout · {formatCurrency(orderTotal)}
                   </Button>
                 </Link>

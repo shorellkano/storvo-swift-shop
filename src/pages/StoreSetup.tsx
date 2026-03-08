@@ -215,14 +215,40 @@ const StoreSetup = () => {
   };
 
   const handleSelectPro = async () => {
-    // For now, start with free and show upgrade later (Paystack integration pending)
     if (!createdStoreId) return;
-    await supabase.from("subscriptions").insert({
-      store_id: createdStoreId,
-      plan: "free",
-    });
-    toast.success("Your store is live! Pro upgrade coming soon via Paystack.");
-    setStep(4);
+    // Ensure a free subscription exists first (Paystack webhook will upgrade it)
+    const { data: existingSub } = await supabase
+      .from("subscriptions")
+      .select("id")
+      .eq("store_id", createdStoreId)
+      .maybeSingle();
+
+    if (!existingSub) {
+      await supabase.from("subscriptions").insert({
+        store_id: createdStoreId,
+        plan: "free",
+      });
+    }
+
+    // Redirect to Paystack payment
+    try {
+      const { data, error } = await supabase.functions.invoke("initialize-payment", {
+        body: {
+          store_id: createdStoreId,
+          callback_url: `${window.location.origin}/dashboard?payment=success`,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.authorization_url) {
+        window.location.href = data.authorization_url;
+      } else {
+        throw new Error("No payment URL received");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Could not start payment. Try the free plan for now.");
+    }
   };
 
   const steps = [
