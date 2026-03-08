@@ -26,17 +26,18 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser(
+      authHeader.replace("Bearer ", "")
+    );
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = claimsData.claims.sub;
-    const email = claimsData.claims.email;
+    const userId = user.id;
+    const email = user.email;
 
     const { store_id, callback_url } = await req.json();
 
@@ -62,6 +63,9 @@ Deno.serve(async (req) => {
     }
 
     const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY");
+    console.log("PAYSTACK_SECRET_KEY exists:", !!PAYSTACK_SECRET_KEY);
+    console.log("PAYSTACK_SECRET_KEY length:", PAYSTACK_SECRET_KEY?.length);
+    console.log("PAYSTACK_SECRET_KEY starts with sk_:", PAYSTACK_SECRET_KEY?.startsWith("sk_"));
     if (!PAYSTACK_SECRET_KEY) {
       return new Response(JSON.stringify({ error: "Payment not configured" }), {
         status: 500,
