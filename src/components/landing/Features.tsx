@@ -43,8 +43,8 @@ const features = [
 
 const Features = () => {
   return (
-    <section id="features" className="relative py-24 md:py-32">
-      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-[500px] w-[800px] glow-indigo opacity-50" />
+    <section id="features" className="relative py-24 md:py-32 bg-card">
+      <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-[500px] w-[800px] glow-primary opacity-30" />
 
       <div className="relative mx-auto max-w-6xl px-6">
         <motion.div
@@ -53,29 +53,29 @@ const Features = () => {
           viewport={{ once: true }}
           className="text-center"
         >
-          <p className="text-sm font-semibold uppercase tracking-wider text-storvo-indigo">Features</p>
-          <h2 className="mt-3 font-display text-3xl font-bold text-foreground md:text-4xl">
+          <p className="text-sm font-semibold uppercase tracking-wider text-primary">Features</p>
+          <h2 className="mt-3 font-display text-3xl font-extrabold text-foreground md:text-4xl lg:text-5xl">
             Everything you need to sell online
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
+          <p className="mx-auto mt-4 max-w-2xl text-muted-foreground text-lg">
             Built specifically for social commerce sellers. No complicated setup, no technical skills required.
           </p>
         </motion.div>
 
-        <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, i) => (
             <motion.div
               key={feature.title}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="group rounded-2xl border border-border/60 bg-card p-7 shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1"
+              transition={{ delay: i * 0.08 }}
+              className="group relative rounded-2xl border border-border/60 bg-background p-7 shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 hover:border-primary/20"
             >
-              <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-storvo-indigo">
+              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-accent text-primary transition-colors duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
                 <feature.icon className="h-5 w-5" />
               </div>
-              <h3 className="font-display text-lg font-semibold text-foreground">{feature.title}</h3>
+              <h3 className="font-display text-lg font-bold text-foreground">{feature.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
             </motion.div>
           ))}
