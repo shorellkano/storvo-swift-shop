@@ -184,10 +184,9 @@ const Storefront = () => {
                     <h3 className="font-display text-sm font-semibold text-foreground truncate">{product.name}</h3>
                     <p className="text-sm font-bold mt-1" style={{ color: brandColor }}>{formatCurrency(Number(product.price))}</p>
                     <div className="mt-3 flex gap-2">
-                      <Button
-                        size="sm"
-                        className="flex-1 text-xs transition-all duration-150 active:scale-95"
-                        style={{ background: addedIds.has(product.id) ? '#22c55e' : brandColor }}
+                      <button
+                        className="flex-1 inline-flex items-center justify-center rounded-md text-xs font-medium h-9 px-3 text-white transition-all duration-150 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                        style={{ backgroundColor: addedIds.has(product.id) ? '#22c55e' : brandColor }}
                         disabled={outOfStock}
                         onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                       >
