@@ -12,6 +12,7 @@ interface CartItem {
 
 const Storefront = () => {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -20,6 +21,7 @@ const Storefront = () => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [addedIds, setAddedIds] = useState<Record<string, boolean>>({});
+  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
     const fetchStore = async () => {
