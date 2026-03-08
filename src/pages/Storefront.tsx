@@ -301,7 +301,7 @@ const Storefront = () => {
                 <div className="flex gap-3 pt-2">
                   <Button
                     size="lg"
-                    className="flex-1 font-semibold"
+                    className="flex-1 font-semibold transition-all duration-150 active:scale-95"
                     style={{ background: brandColor }}
                     disabled={outOfStock}
                     onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}
