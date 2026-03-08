@@ -145,10 +145,9 @@ const EditProduct = () => {
         }
       }
 
-      // Upload new images
+      // Upload new images in parallel
       const remainingCount = existingImages.length - removedImageIds.length;
-      for (let i = 0; i < newImages.length; i++) {
-        const file = newImages[i];
+      await Promise.all(newImages.map(async (file, i) => {
         const fileExt = file.name.split(".").pop();
         const filePath = `${store.id}/${id}/${Date.now()}_${i}.${fileExt}`;
 
@@ -156,7 +155,7 @@ const EditProduct = () => {
           .from("product-images")
           .upload(filePath, file);
 
-        if (uploadError) { console.error(uploadError); continue; }
+        if (uploadError) { console.error(uploadError); return; }
 
         const { data: { publicUrl } } = supabase.storage
           .from("product-images")
@@ -167,7 +166,7 @@ const EditProduct = () => {
           image_url: publicUrl,
           display_order: remainingCount + i,
         });
-      }
+      }));
 
       toast.success("Product updated! ✨");
       navigate("/dashboard/products");
