@@ -133,6 +133,14 @@ const Storefront = () => {
       <header className="sticky top-0 z-50 border-b border-border/60 bg-card/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
           <div className="flex items-center gap-3">
+            {isOwner && (
+              <button
+                onClick={() => navigate("/dashboard")}
+                className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+            )}
             {store.logo_url ? (
               <img src={store.logo_url} alt={store.name} className="h-8 w-8 rounded-lg object-cover" />
             ) : (
