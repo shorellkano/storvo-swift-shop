@@ -32,7 +32,7 @@ const StoreSettings = () => {
   const [uploading, setUploading] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
 
-  const { subscription } = useSubscription(store?.id || null);
+  const { subscription, refetch: refetchSubscription } = useSubscription(store?.id || null);
 
   // Form state
   const [name, setName] = useState("");
