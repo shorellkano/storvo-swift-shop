@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Upload, X, Loader2 } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import { useSubscription, FREE_IMAGE_LIMIT, PRO_IMAGE_LIMIT } from "@/hooks/useSubscription";
 
 const EditProduct = () => {
   const { user } = useAuth();
@@ -80,15 +81,19 @@ const EditProduct = () => {
     fetchData();
   }, [user, id, navigate]);
 
+  const { isPro } = useSubscription(store?.id || null);
+  const maxImages = isPro ? PRO_IMAGE_LIMIT : FREE_IMAGE_LIMIT;
+
   const handleNewImages = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const totalImages = existingImages.length - removedImageIds.length + newImages.length + files.length;
-    if (totalImages > 5) {
-      toast.error("Maximum 5 images per product");
-      return;
+    const currentTotal = existingImages.length - removedImageIds.length + newImages.length;
+    const allowed = files.slice(0, maxImages - currentTotal);
+    if (allowed.length < files.length) {
+      toast.error(`Maximum ${maxImages} images per product`);
     }
-    setNewImages((prev) => [...prev, ...files]);
-    files.forEach((file) => {
+    if (allowed.length === 0) return;
+    setNewImages((prev) => [...prev, ...allowed]);
+    allowed.forEach((file) => {
       const reader = new FileReader();
       reader.onload = (e) => setNewPreviews((prev) => [...prev, e.target?.result as string]);
       reader.readAsDataURL(file);
@@ -140,10 +145,9 @@ const EditProduct = () => {
         }
       }
 
-      // Upload new images
+      // Upload new images in parallel
       const remainingCount = existingImages.length - removedImageIds.length;
-      for (let i = 0; i < newImages.length; i++) {
-        const file = newImages[i];
+      await Promise.all(newImages.map(async (file, i) => {
         const fileExt = file.name.split(".").pop();
         const filePath = `${store.id}/${id}/${Date.now()}_${i}.${fileExt}`;
 
@@ -151,7 +155,7 @@ const EditProduct = () => {
           .from("product-images")
           .upload(filePath, file);
 
-        if (uploadError) { console.error(uploadError); continue; }
+        if (uploadError) { console.error(uploadError); return; }
 
         const { data: { publicUrl } } = supabase.storage
           .from("product-images")
@@ -162,7 +166,7 @@ const EditProduct = () => {
           image_url: publicUrl,
           display_order: remainingCount + i,
         });
-      }
+      }));
 
       toast.success("Product updated! ✨");
       navigate("/dashboard/products");
@@ -325,11 +329,12 @@ const EditProduct = () => {
                         </button>
                       </div>
                     ))}
-                    {totalImages < 5 && (
+                    {totalImages < maxImages && (
                       <label className="flex aspect-square cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border hover:border-primary/40 transition-colors">
                         <input
                           type="file"
                           accept="image/*"
+                          multiple
                           onChange={handleNewImages}
                           className="hidden"
                         />

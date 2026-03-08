@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSubscription } from "@/hooks/useSubscription";
+import { useSubscription, FREE_IMAGE_LIMIT, PRO_IMAGE_LIMIT } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,14 +50,17 @@ const AddProduct = () => {
       .then(({ data }) => setStore(data));
   }, [user]);
 
+  const maxImages = isPro ? PRO_IMAGE_LIMIT : FREE_IMAGE_LIMIT;
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (images.length + files.length > 5) {
-      toast.error("Maximum 5 images per product");
-      return;
+    const allowed = files.slice(0, maxImages - images.length);
+    if (allowed.length < files.length) {
+      toast.error(`Maximum ${maxImages} images per product`);
     }
-    setImages((prev) => [...prev, ...files]);
-    files.forEach((file) => {
+    if (allowed.length === 0) return;
+    setImages((prev) => [...prev, ...allowed]);
+    allowed.forEach((file) => {
       const reader = new FileReader();
       reader.onload = (e) => setPreviews((prev) => [...prev, e.target?.result as string]);
       reader.readAsDataURL(file);
@@ -120,8 +123,7 @@ const AddProduct = () => {
 
       if (error) throw error;
 
-      for (let i = 0; i < images.length; i++) {
-        const file = images[i];
+      await Promise.all(images.map(async (file, i) => {
         const fileExt = file.name.split(".").pop();
         const filePath = `${store.id}/${product.id}/${i}.${fileExt}`;
 
@@ -129,7 +131,7 @@ const AddProduct = () => {
           .from("product-images")
           .upload(filePath, file);
 
-        if (uploadError) { console.error("Upload error:", uploadError); continue; }
+        if (uploadError) { console.error("Upload error:", uploadError); return; }
 
         const { data: { publicUrl } } = supabase.storage
           .from("product-images")
@@ -140,7 +142,7 @@ const AddProduct = () => {
           image_url: publicUrl,
           display_order: i,
         });
-      }
+      }));
 
       setCreatedProduct({ id: product.id, name: product.name });
     } catch (error: any) {
@@ -353,11 +355,12 @@ const AddProduct = () => {
                         </button>
                       </div>
                     ))}
-                    {previews.length < 5 && (
+                    {previews.length < maxImages && (
                       <label className="flex aspect-square cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border hover:border-primary/40 transition-colors">
                         <input
                           type="file"
                           accept="image/*"
+                          multiple
                           onChange={handleImageChange}
                           className="hidden"
                         />
@@ -365,7 +368,7 @@ const AddProduct = () => {
                       </label>
                     )}
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">Up to 5 images, 5MB each</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Up to {maxImages} images, 5MB each</p>
                 </div>
 
                 <Button variant="hero" size="lg" className="w-full" disabled={loading}>
