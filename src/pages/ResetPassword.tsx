@@ -61,7 +61,7 @@ const ResetPassword = () => {
     return (
       <div className="flex min-h-screen items-center justify-center gradient-hero px-4">
         <div className="relative w-full max-w-md rounded-2xl border border-border/60 bg-card p-8 shadow-card text-center">
-          <img src={storvoLogo} alt="Storvo" className="mx-auto mb-6 h-8" />
+          <button onClick={() => navigate("/")}><img src={storvoLogo} alt="Storvo" className="mx-auto mb-6 h-8" /></button>
           <h1 className="mb-2 font-display text-2xl font-bold text-foreground">Invalid Reset Link</h1>
           <p className="mb-6 text-sm text-muted-foreground">
             This link is invalid or has expired. Please request a new password reset.
@@ -87,7 +87,7 @@ const ResetPassword = () => {
       >
         <div className="rounded-2xl border border-border/60 bg-card p-8 shadow-card">
           <div className="mb-6 flex justify-center">
-            <img src={storvoLogo} alt="Storvo" className="h-8" />
+            <button onClick={() => navigate("/")}><img src={storvoLogo} alt="Storvo" className="h-8" /></button>
           </div>
 
           <div className="mb-4 flex items-center justify-center">

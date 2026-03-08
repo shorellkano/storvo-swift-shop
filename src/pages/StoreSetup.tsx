@@ -280,7 +280,9 @@ const StoreSetup = () => {
       <div className="relative w-full max-w-lg">
         {/* Logo */}
         <div className="mb-5 flex justify-center">
-          <img src={storvoLogo} alt="Storvo" className="h-7" />
+          <button onClick={() => navigate("/")}>
+            <img src={storvoLogo} alt="Storvo" className="h-7" />
+          </button>
         </div>
 
         {/* Progress */}

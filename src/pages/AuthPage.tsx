@@ -91,7 +91,9 @@ const AuthPage = () => {
 
       <div className="relative w-full max-w-md rounded-2xl border border-border/60 bg-card p-8 shadow-card">
         <div className="mb-8 flex justify-center">
-          <img src={storvoLogo} alt="Storvo" className="h-8" />
+          <button onClick={() => navigate("/")}>
+            <img src={storvoLogo} alt="Storvo" className="h-8" />
+          </button>
         </div>
 
         <h1 className="mb-2 text-center font-display text-2xl font-bold text-foreground">
