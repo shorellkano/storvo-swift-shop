@@ -61,4 +61,3 @@ export const useSubscription = (storeId: string | null): UseSubscriptionReturn =
   };
 };
 
-export const FREE_PRODUCT_LIMIT = 10;
