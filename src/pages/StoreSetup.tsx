@@ -9,13 +9,14 @@ import SetupProgress from "@/components/setup/SetupProgress";
 import StoreDetailsStep from "@/components/setup/StoreDetailsStep";
 import LogoBrandStep from "@/components/setup/LogoBrandStep";
 import SetupSuccess from "@/components/setup/SetupSuccess";
+import PlanSelection from "@/components/setup/PlanSelection";
 
 const StoreSetup = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Wizard state
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  // Wizard state: 1=details, 2=brand, 3=plan, 4=success
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [initialCheckDone, setInitialCheckDone] = useState(false);
 
   // Store details
@@ -34,7 +35,7 @@ const StoreSetup = () => {
   const [createdStoreSlug, setCreatedStoreSlug] = useState("");
   const [createdStoreId, setCreatedStoreId] = useState("");
 
-  // On mount, check if user already has a store (e.g. page refresh after step 1)
+  // On mount, check if user already has a store
   useEffect(() => {
     if (authLoading || !user) return;
 
@@ -55,8 +56,20 @@ const StoreSetup = () => {
         if (store.logo_url) {
           setLogoPreview(store.logo_url);
         }
-        // If they already have a logo, go to success; otherwise go to branding step
-        setStep(store.logo_url ? 3 : 2);
+        // Check if they have a subscription already (meaning they chose a plan)
+        const { data: sub } = await supabase
+          .from("subscriptions")
+          .select("id")
+          .eq("store_id", store.id)
+          .maybeSingle();
+
+        if (sub) {
+          setStep(4); // Already chose plan, show success
+        } else if (store.logo_url) {
+          setStep(3); // Has logo, show plan selection
+        } else {
+          setStep(2); // Show branding step
+        }
       }
       setInitialCheckDone(true);
     };
@@ -90,7 +103,6 @@ const StoreSetup = () => {
     const slug = generateSlug(storeName);
 
     try {
-      // Check reserved slugs
       const { data: reserved } = await supabase
         .from("reserved_slugs")
         .select("slug")
@@ -103,7 +115,6 @@ const StoreSetup = () => {
         return;
       }
 
-      // Check uniqueness
       const { data: existing } = await supabase
         .from("stores")
         .select("slug")
@@ -127,7 +138,6 @@ const StoreSetup = () => {
 
       if (error) throw error;
 
-      // Get created store
       const { data: store } = await supabase
         .from("stores")
         .select("id")
@@ -137,12 +147,6 @@ const StoreSetup = () => {
       if (store) {
         setCreatedStoreId(store.id);
         setCreatedStoreSlug(slug);
-
-        // Create free subscription
-        await supabase.from("subscriptions").insert({
-          store_id: store.id,
-          plan: "free",
-        });
       }
 
       toast.success("Store created! Now let's brand it.");
@@ -186,7 +190,7 @@ const StoreSetup = () => {
         })
         .eq("id", createdStoreId);
 
-      toast.success("Your store is live! 🎉");
+      toast.success("Looking great! Now choose your plan.");
       setStep(3);
     } catch (error: any) {
       toast.error(error.message);
@@ -196,14 +200,36 @@ const StoreSetup = () => {
   };
 
   const handleSkipBrand = () => {
-    toast.success("Your store is live! 🎉");
     setStep(3);
+  };
+
+  // Step 3: Plan selection
+  const handleSelectFree = async () => {
+    if (!createdStoreId) return;
+    await supabase.from("subscriptions").insert({
+      store_id: createdStoreId,
+      plan: "free",
+    });
+    toast.success("Your store is live! 🎉");
+    setStep(4);
+  };
+
+  const handleSelectPro = async () => {
+    // For now, start with free and show upgrade later (Paystack integration pending)
+    if (!createdStoreId) return;
+    await supabase.from("subscriptions").insert({
+      store_id: createdStoreId,
+      plan: "free",
+    });
+    toast.success("Your store is live! Pro upgrade coming soon via Paystack.");
+    setStep(4);
   };
 
   const steps = [
     { label: "Store Details", completed: step > 1, active: step === 1 },
     { label: "Logo & Brand", completed: step > 2, active: step === 2 },
-    { label: "You're Live!", completed: step === 3, active: step === 3 },
+    { label: "Choose Plan", completed: step > 3, active: step === 3 },
+    { label: "You're Live!", completed: step === 4, active: step === 4 },
   ];
 
   const slideVariants = {
@@ -302,6 +328,22 @@ const StoreSetup = () => {
             {step === 3 && (
               <motion.div
                 key="step3"
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.25 }}
+              >
+                <PlanSelection
+                  onSelectFree={handleSelectFree}
+                  onSelectPro={handleSelectPro}
+                />
+              </motion.div>
+            )}
+
+            {step === 4 && (
+              <motion.div
+                key="step4"
                 variants={slideVariants}
                 initial="enter"
                 animate="center"

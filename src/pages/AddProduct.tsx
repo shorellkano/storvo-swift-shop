@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,10 +10,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ArrowLeft, Upload, X } from "lucide-react";
+import { ArrowLeft, Upload, X, Crown } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import PostUploadSuccess from "@/components/dashboard/PostUploadSuccess";
+import UpgradeModal from "@/components/dashboard/UpgradeModal";
 
 const AddProduct = () => {
   const { user } = useAuth();
@@ -22,6 +24,9 @@ const AddProduct = () => {
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [createdProduct, setCreatedProduct] = useState<{ id: string; name: string } | null>(null);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
+  const { canAddProduct, productCount, isPro, refetch } = useSubscription(store?.id || null);
 
   const [form, setForm] = useState({
     name: "",
@@ -80,11 +85,18 @@ const AddProduct = () => {
     setImages([]);
     setPreviews([]);
     setCreatedProduct(null);
+    refetch();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!store) return;
+
+    if (!canAddProduct) {
+      setShowUpgrade(true);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -108,7 +120,6 @@ const AddProduct = () => {
 
       if (error) throw error;
 
-      // Upload images
       for (let i = 0; i < images.length; i++) {
         const file = images[i];
         const fileExt = file.name.split(".").pop();
@@ -166,6 +177,45 @@ const AddProduct = () => {
     );
   }
 
+  // Show limit reached screen
+  if (!canAddProduct) {
+    return (
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <DashboardSidebar store={store} />
+          <div className="flex-1 flex flex-col">
+            <header className="h-14 flex items-center border-b border-border/60 bg-card px-4">
+              <SidebarTrigger className="mr-4" />
+              <h2 className="font-display text-lg font-semibold text-foreground">Add Product</h2>
+            </header>
+            <main className="flex-1 p-6 bg-background flex items-center justify-center">
+              <div className="mx-auto max-w-md text-center">
+                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-accent">
+                  <Crown className="h-8 w-8 text-accent-foreground" />
+                </div>
+                <h2 className="font-display text-xl font-bold text-foreground">
+                  Free plan limit reached
+                </h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  You've added {productCount} of 10 products on the Free plan. Upgrade to Pro to add unlimited products.
+                </p>
+                <div className="mt-6 space-y-3">
+                  <Button variant="hero" size="lg" className="w-full" onClick={() => setShowUpgrade(true)}>
+                    <Crown className="mr-2 h-4 w-4" /> Upgrade to Pro — ₦3,500/mo
+                  </Button>
+                  <Button variant="ghost" onClick={() => navigate("/dashboard/products")}>
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to Products
+                  </Button>
+                </div>
+              </div>
+            </main>
+          </div>
+        </div>
+        <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} reason="limit" />
+      </SidebarProvider>
+    );
+  }
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -181,6 +231,21 @@ const AddProduct = () => {
             </Button>
 
             <div className="mx-auto max-w-2xl rounded-2xl border border-border/60 bg-card p-6 sm:p-8 shadow-card">
+              {/* Product count indicator */}
+              {!isPro && (
+                <div className="mb-5 flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
+                  <span className="text-xs text-muted-foreground">
+                    {productCount + 1} of 10 products (Free plan)
+                  </span>
+                  <button
+                    onClick={() => setShowUpgrade(true)}
+                    className="text-xs font-medium text-primary hover:underline"
+                  >
+                    Upgrade
+                  </button>
+                </div>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <Label htmlFor="name">Product Name</Label>
@@ -311,6 +376,7 @@ const AddProduct = () => {
           </main>
         </div>
       </div>
+      <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} reason="limit" />
     </SidebarProvider>
   );
 };
