@@ -1,8 +1,22 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, CreditCard } from "lucide-react";
+import { Check, Crown, CreditCard, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface BillingSectionProps {
   subscription: {
@@ -11,7 +25,9 @@ interface BillingSectionProps {
     expires_at: string | null;
     started_at: string;
   } | null;
+  storeId: string | null;
   onUpgrade: () => void;
+  onCancelled: () => void;
 }
 
 const PRO_FEATURES = [
