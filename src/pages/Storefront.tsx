@@ -68,7 +68,7 @@ const Storefront = () => {
         delete next[id];
         return next;
       });
-    }, 2000);
+    }, 30000);
     toast.success("Added to cart!");
   };
 
