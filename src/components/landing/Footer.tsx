@@ -1,6 +1,8 @@
+import { useNavigate } from "react-router-dom";
 import storvoLogo from "@/assets/storvo-logo.png";
 
 const Footer = () => {
+  const navigate = useNavigate();
   return (
     <footer className="border-t border-border/40 bg-background py-12">
       <div className="mx-auto max-w-6xl px-6">
