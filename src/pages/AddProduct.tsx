@@ -50,14 +50,17 @@ const AddProduct = () => {
       .then(({ data }) => setStore(data));
   }, [user]);
 
+  const maxImages = isPro ? PRO_IMAGE_LIMIT : FREE_IMAGE_LIMIT;
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (images.length + files.length > 5) {
-      toast.error("Maximum 5 images per product");
-      return;
+    const allowed = files.slice(0, maxImages - images.length);
+    if (allowed.length < files.length) {
+      toast.error(`Maximum ${maxImages} images per product`);
     }
-    setImages((prev) => [...prev, ...files]);
-    files.forEach((file) => {
+    if (allowed.length === 0) return;
+    setImages((prev) => [...prev, ...allowed]);
+    allowed.forEach((file) => {
       const reader = new FileReader();
       reader.onload = (e) => setPreviews((prev) => [...prev, e.target?.result as string]);
       reader.readAsDataURL(file);
