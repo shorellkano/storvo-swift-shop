@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, MessageCircle, Share2, Store, X, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { ShoppingCart, MessageCircle, Share2, Store, X, ChevronLeft, ChevronRight, Check, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 interface CartItem {
@@ -12,6 +12,7 @@ interface CartItem {
 
 const Storefront = () => {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -20,6 +21,7 @@ const Storefront = () => {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [addedIds, setAddedIds] = useState<Record<string, boolean>>({});
+  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
     const fetchStore = async () => {
@@ -33,6 +35,11 @@ const Storefront = () => {
       if (!storeData) { setLoading(false); return; }
       setStore(storeData);
 
+      // Check if current user is the store owner
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && user.id === storeData.user_id) {
+        setIsOwner(true);
+      }
       const { data: prods } = await supabase
         .from("products")
         .select("*, product_images(*)")
@@ -126,6 +133,14 @@ const Storefront = () => {
       <header className="sticky top-0 z-50 border-b border-border/60 bg-card/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
           <div className="flex items-center gap-3">
+            {isOwner && (
+              <button
+                onClick={() => navigate("/dashboard")}
+                className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+            )}
             {store.logo_url ? (
               <img src={store.logo_url} alt={store.name} className="h-8 w-8 rounded-lg object-cover" />
             ) : (
