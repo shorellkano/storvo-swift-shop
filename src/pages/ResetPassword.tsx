@@ -87,7 +87,7 @@ const ResetPassword = () => {
       >
         <div className="rounded-2xl border border-border/60 bg-card p-8 shadow-card">
           <div className="mb-6 flex justify-center">
-            <img src={storvoLogo} alt="Storvo" className="h-8" />
+            <button onClick={() => navigate("/")}><img src={storvoLogo} alt="Storvo" className="h-8" /></button>
           </div>
 
           <div className="mb-4 flex items-center justify-center">
