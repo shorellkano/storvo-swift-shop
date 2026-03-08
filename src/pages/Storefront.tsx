@@ -195,7 +195,7 @@ const Storefront = () => {
                         ) : (
                           "Add to Cart"
                         )}
-                      </Button>
+                      </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
