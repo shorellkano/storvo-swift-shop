@@ -10,6 +10,8 @@ import StoreSetup from "./pages/StoreSetup";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import AddProduct from "./pages/AddProduct";
+import EditProduct from "./pages/EditProduct";
+import ProductPreview from "./pages/ProductPreview";
 import Orders from "./pages/Orders";
 import StoreSettings from "./pages/StoreSettings";
 import Storefront from "./pages/Storefront";
@@ -33,6 +35,8 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/products" element={<Products />} />
             <Route path="/dashboard/products/new" element={<AddProduct />} />
+            <Route path="/dashboard/products/:id/edit" element={<EditProduct />} />
+            <Route path="/dashboard/products/:id/preview" element={<ProductPreview />} />
             <Route path="/dashboard/orders" element={<Orders />} />
             <Route path="/dashboard/settings" element={<StoreSettings />} />
             <Route path="/store/:slug" element={<Storefront />} />

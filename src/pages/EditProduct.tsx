@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -9,19 +9,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ArrowLeft, Upload, X } from "lucide-react";
+import { ArrowLeft, Upload, X, Loader2 } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
-import PostUploadSuccess from "@/components/dashboard/PostUploadSuccess";
 
-const AddProduct = () => {
+const EditProduct = () => {
   const { user } = useAuth();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [store, setStore] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [images, setImages] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
-  const [createdProduct, setCreatedProduct] = useState<{ id: string; name: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [existingImages, setExistingImages] = useState<any[]>([]);
+  const [newImages, setNewImages] = useState<File[]>([]);
+  const [newPreviews, setNewPreviews] = useState<string[]>([]);
+  const [removedImageIds, setRemovedImageIds] = useState<string[]>([]);
 
   const [form, setForm] = useState({
     name: "",
@@ -31,140 +33,156 @@ const AddProduct = () => {
     trackInventory: false,
     stockQuantity: 0,
     digitalFileUrl: "",
+    isActive: true,
   });
 
   useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("stores")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => setStore(data));
-  }, [user]);
+    if (!user || !id) return;
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fetchData = async () => {
+      const { data: storeData } = await supabase
+        .from("stores")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!storeData) { navigate("/setup"); return; }
+      setStore(storeData);
+
+      const { data: product } = await supabase
+        .from("products")
+        .select("*, product_images(*)")
+        .eq("id", id)
+        .eq("store_id", storeData.id)
+        .single();
+
+      if (!product) { navigate("/dashboard/products"); return; }
+
+      setForm({
+        name: product.name,
+        price: String(product.price),
+        description: product.description || "",
+        productType: product.product_type as "physical" | "digital",
+        trackInventory: product.track_inventory,
+        stockQuantity: product.stock_quantity || 0,
+        digitalFileUrl: product.digital_file_url || "",
+        isActive: product.is_active,
+      });
+
+      setExistingImages(
+        (product.product_images || []).sort((a: any, b: any) => a.display_order - b.display_order)
+      );
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [user, id, navigate]);
+
+  const handleNewImages = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (images.length + files.length > 5) {
+    const totalImages = existingImages.length - removedImageIds.length + newImages.length + files.length;
+    if (totalImages > 5) {
       toast.error("Maximum 5 images per product");
       return;
     }
-    setImages((prev) => [...prev, ...files]);
+    setNewImages((prev) => [...prev, ...files]);
     files.forEach((file) => {
       const reader = new FileReader();
-      reader.onload = (e) => setPreviews((prev) => [...prev, e.target?.result as string]);
+      reader.onload = (e) => setNewPreviews((prev) => [...prev, e.target?.result as string]);
       reader.readAsDataURL(file);
     });
   };
 
-  const removeImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-    setPreviews((prev) => prev.filter((_, i) => i !== index));
+  const removeExistingImage = (imageId: string) => {
+    setRemovedImageIds((prev) => [...prev, imageId]);
+  };
+
+  const removeNewImage = (index: number) => {
+    setNewImages((prev) => prev.filter((_, i) => i !== index));
+    setNewPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const generateSlug = (name: string) =>
     name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
-  const resetForm = () => {
-    setForm({
-      name: "",
-      price: "",
-      description: "",
-      productType: "physical",
-      trackInventory: false,
-      stockQuantity: 0,
-      digitalFileUrl: "",
-    });
-    setImages([]);
-    setPreviews([]);
-    setCreatedProduct(null);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!store) return;
-    setLoading(true);
+    if (!store || !id) return;
+    setSaving(true);
 
     try {
-      const slug = generateSlug(form.name);
-
-      const { data: product, error } = await supabase
+      const { error } = await supabase
         .from("products")
-        .insert({
-          store_id: store.id,
+        .update({
           name: form.name,
-          slug,
+          slug: generateSlug(form.name),
           price: parseFloat(form.price),
           description: form.description,
           product_type: form.productType,
           track_inventory: form.trackInventory,
           stock_quantity: form.trackInventory ? form.stockQuantity : 0,
           digital_file_url: form.productType === "digital" ? form.digitalFileUrl : null,
+          is_active: form.isActive,
         })
-        .select()
-        .single();
+        .eq("id", id);
 
       if (error) throw error;
 
-      // Upload images
-      for (let i = 0; i < images.length; i++) {
-        const file = images[i];
+      // Remove deleted images
+      for (const imgId of removedImageIds) {
+        const img = existingImages.find((i) => i.id === imgId);
+        if (img) {
+          const path = img.image_url.split("/product-images/")[1];
+          if (path) await supabase.storage.from("product-images").remove([path]);
+          await supabase.from("product_images").delete().eq("id", imgId);
+        }
+      }
+
+      // Upload new images
+      const remainingCount = existingImages.length - removedImageIds.length;
+      for (let i = 0; i < newImages.length; i++) {
+        const file = newImages[i];
         const fileExt = file.name.split(".").pop();
-        const filePath = `${store.id}/${product.id}/${i}.${fileExt}`;
+        const filePath = `${store.id}/${id}/${Date.now()}_${i}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("product-images")
           .upload(filePath, file);
 
-        if (uploadError) { console.error("Upload error:", uploadError); continue; }
+        if (uploadError) { console.error(uploadError); continue; }
 
         const { data: { publicUrl } } = supabase.storage
           .from("product-images")
           .getPublicUrl(filePath);
 
         await supabase.from("product_images").insert({
-          product_id: product.id,
+          product_id: id,
           image_url: publicUrl,
-          display_order: i,
+          display_order: remainingCount + i,
         });
       }
 
-      setCreatedProduct({ id: product.id, name: product.name });
-    } catch (error: any) {
-      toast.error(error.message);
+      toast.success("Product updated! ✨");
+      navigate("/dashboard/products");
+    } catch (err: any) {
+      toast.error(err.message);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  if (!store) return null;
-
-  // Show success screen after creation
-  if (createdProduct) {
+  if (loading || !store) {
     return (
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full">
-          <DashboardSidebar store={store} />
-          <div className="flex-1 flex flex-col">
-            <header className="h-14 flex items-center border-b border-border/60 bg-card px-4">
-              <SidebarTrigger className="mr-4" />
-              <h2 className="font-display text-lg font-semibold text-foreground">Product Added</h2>
-            </header>
-            <main className="flex-1 p-6 bg-background flex items-center justify-center">
-              <PostUploadSuccess
-                productName={createdProduct.name}
-                productId={createdProduct.id}
-                storeSlug={store.slug}
-                onAddAnother={resetForm}
-              />
-            </main>
-          </div>
-        </div>
-      </SidebarProvider>
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
+
+  const visibleExisting = existingImages.filter((img) => !removedImageIds.includes(img.id));
+  const totalImages = visibleExisting.length + newPreviews.length;
 
   return (
     <SidebarProvider>
@@ -173,7 +191,7 @@ const AddProduct = () => {
         <div className="flex-1 flex flex-col">
           <header className="h-14 flex items-center border-b border-border/60 bg-card px-4">
             <SidebarTrigger className="mr-4" />
-            <h2 className="font-display text-lg font-semibold text-foreground">Add Product</h2>
+            <h2 className="font-display text-lg font-semibold text-foreground">Edit Product</h2>
           </header>
           <main className="flex-1 p-4 sm:p-6 bg-background">
             <Button variant="ghost" onClick={() => navigate("/dashboard/products")} className="mb-4">
@@ -182,13 +200,21 @@ const AddProduct = () => {
 
             <div className="mx-auto max-w-2xl rounded-2xl border border-border/60 bg-card p-6 sm:p-8 shadow-card">
               <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="isActive">Product Active</Label>
+                  <Switch
+                    id="isActive"
+                    checked={form.isActive}
+                    onCheckedChange={(v) => setForm({ ...form, isActive: v })}
+                  />
+                </div>
+
                 <div>
                   <Label htmlFor="name">Product Name</Label>
                   <Input
                     id="name"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="e.g. Luxury Brazilian Wig"
                     required
                     maxLength={100}
                   />
@@ -203,7 +229,6 @@ const AddProduct = () => {
                     step="0.01"
                     value={form.price}
                     onChange={(e) => setForm({ ...form, price: e.target.value })}
-                    placeholder="0.00"
                     required
                   />
                 </div>
@@ -214,8 +239,8 @@ const AddProduct = () => {
                     id="description"
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    placeholder="Describe your product..."
                     rows={4}
+                    placeholder="Describe your product..."
                   />
                 </div>
 
@@ -262,7 +287,7 @@ const AddProduct = () => {
 
                 {form.productType === "digital" && (
                   <div>
-                    <Label htmlFor="digitalUrl">Download URL (Google Drive / Dropbox link)</Label>
+                    <Label htmlFor="digitalUrl">Download URL</Label>
                     <Input
                       id="digitalUrl"
                       value={form.digitalFileUrl}
@@ -272,39 +297,50 @@ const AddProduct = () => {
                   </div>
                 )}
 
-                {/* Image Upload */}
+                {/* Images */}
                 <div>
                   <Label>Product Images</Label>
                   <div className="mt-2 grid grid-cols-3 sm:grid-cols-5 gap-3">
-                    {previews.map((preview, i) => (
-                      <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border">
-                        <img src={preview} alt="" className="h-full w-full object-cover" />
+                    {visibleExisting.map((img) => (
+                      <div key={img.id} className="relative aspect-square rounded-xl overflow-hidden border border-border">
+                        <img src={img.image_url} alt="" className="h-full w-full object-cover" />
                         <button
                           type="button"
-                          onClick={() => removeImage(i)}
+                          onClick={() => removeExistingImage(img.id)}
                           className="absolute top-1 right-1 rounded-full bg-card/80 p-1 backdrop-blur"
                         >
                           <X className="h-3 w-3" />
                         </button>
                       </div>
                     ))}
-                    {previews.length < 5 && (
+                    {newPreviews.map((preview, i) => (
+                      <div key={`new-${i}`} className="relative aspect-square rounded-xl overflow-hidden border border-border border-dashed">
+                        <img src={preview} alt="" className="h-full w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeNewImage(i)}
+                          className="absolute top-1 right-1 rounded-full bg-card/80 p-1 backdrop-blur"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {totalImages < 5 && (
                       <label className="flex aspect-square cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border hover:border-primary/40 transition-colors">
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={handleImageChange}
+                          onChange={handleNewImages}
                           className="hidden"
                         />
                         <Upload className="h-6 w-6 text-muted-foreground" />
                       </label>
                     )}
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">Up to 5 images, 5MB each</p>
                 </div>
 
-                <Button variant="hero" size="lg" className="w-full" disabled={loading}>
-                  {loading ? "Adding product..." : "Add Product"}
+                <Button variant="hero" size="lg" className="w-full" disabled={saving}>
+                  {saving ? "Saving..." : "Save Changes"}
                 </Button>
               </form>
             </div>
@@ -315,4 +351,4 @@ const AddProduct = () => {
   );
 };
 
-export default AddProduct;
+export default EditProduct;
