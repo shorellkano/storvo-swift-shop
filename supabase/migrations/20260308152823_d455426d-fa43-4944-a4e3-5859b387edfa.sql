@@ -1,0 +1,1 @@
+UPDATE subscriptions SET plan = 'free', expires_at = NULL, started_at = '2026-03-08T12:02:34.329421+00', updated_at = now() WHERE store_id = '85a8caab-ee73-48fe-935b-71a5d7626d88';
