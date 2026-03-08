@@ -62,6 +62,9 @@ Deno.serve(async (req) => {
     }
 
     const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY");
+    console.log("PAYSTACK_SECRET_KEY exists:", !!PAYSTACK_SECRET_KEY);
+    console.log("PAYSTACK_SECRET_KEY length:", PAYSTACK_SECRET_KEY?.length);
+    console.log("PAYSTACK_SECRET_KEY starts with sk_:", PAYSTACK_SECRET_KEY?.startsWith("sk_"));
     if (!PAYSTACK_SECRET_KEY) {
       return new Response(JSON.stringify({ error: "Payment not configured" }), {
         status: 500,
