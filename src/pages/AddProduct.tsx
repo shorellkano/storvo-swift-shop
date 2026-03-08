@@ -355,11 +355,12 @@ const AddProduct = () => {
                         </button>
                       </div>
                     ))}
-                    {previews.length < 5 && (
+                    {previews.length < maxImages && (
                       <label className="flex aspect-square cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border hover:border-primary/40 transition-colors">
                         <input
                           type="file"
                           accept="image/*"
+                          multiple
                           onChange={handleImageChange}
                           className="hidden"
                         />
@@ -367,7 +368,7 @@ const AddProduct = () => {
                       </label>
                     )}
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">Up to 5 images, 5MB each</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Up to {maxImages} images, 5MB each</p>
                 </div>
 
                 <Button variant="hero" size="lg" className="w-full" disabled={loading}>

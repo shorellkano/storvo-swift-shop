@@ -18,6 +18,8 @@ interface UseSubscriptionReturn {
 }
 
 export const FREE_PRODUCT_LIMIT = 10;
+export const FREE_IMAGE_LIMIT = 3;
+export const PRO_IMAGE_LIMIT = 6;
 
 export const useSubscription = (storeId: string | null): UseSubscriptionReturn => {
   const [subscription, setSubscription] = useState<Subscription | null>(null);

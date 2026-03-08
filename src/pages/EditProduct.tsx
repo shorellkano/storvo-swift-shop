@@ -329,11 +329,12 @@ const EditProduct = () => {
                         </button>
                       </div>
                     ))}
-                    {totalImages < 5 && (
+                    {totalImages < maxImages && (
                       <label className="flex aspect-square cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border hover:border-primary/40 transition-colors">
                         <input
                           type="file"
                           accept="image/*"
+                          multiple
                           onChange={handleNewImages}
                           className="hidden"
                         />
