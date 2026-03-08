@@ -60,11 +60,11 @@ const Storefront = () => {
       return [...prev, { product, quantity: 1 }];
     });
     // Show "Added ✓" feedback on the button
-    setAddedIds((prev) => new Set(prev).add(product.id));
+    setAddedIds((prev) => ({ ...prev, [product.id]: true }));
     setTimeout(() => {
       setAddedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(product.id);
+        const next = { ...prev };
+        delete next[product.id];
         return next;
       });
     }, 2000);
