@@ -209,6 +209,114 @@ const Storefront = () => {
         )}
       </main>
 
+      {/* Product Detail Modal */}
+      {selectedProduct && (() => {
+        const images = selectedProduct.product_images || [];
+        const outOfStock = selectedProduct.track_inventory && selectedProduct.stock_quantity <= 0;
+        return (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+            <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setSelectedProduct(null)} />
+            <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-card shadow-xl">
+              {/* Close button */}
+              <button
+                onClick={() => setSelectedProduct(null)}
+                className="absolute top-3 right-3 z-10 rounded-full bg-card/80 backdrop-blur-sm p-2 shadow-md hover:bg-accent transition-colors"
+              >
+                <X className="h-5 w-5 text-foreground" />
+              </button>
+
+              {/* Image gallery */}
+              <div className="relative aspect-square bg-muted">
+                {images.length > 0 ? (
+                  <img
+                    src={images[activeImageIndex]?.image_url}
+                    alt={selectedProduct.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center">
+                    <Store className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                )}
+                {images.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setActiveImageIndex((prev) => (prev - 1 + images.length) % images.length)}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-card/80 backdrop-blur-sm p-1.5 shadow-md hover:bg-accent transition-colors"
+                    >
+                      <ChevronLeft className="h-5 w-5 text-foreground" />
+                    </button>
+                    <button
+                      onClick={() => setActiveImageIndex((prev) => (prev + 1) % images.length)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-card/80 backdrop-blur-sm p-1.5 shadow-md hover:bg-accent transition-colors"
+                    >
+                      <ChevronRight className="h-5 w-5 text-foreground" />
+                    </button>
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                      {images.map((_: any, i: number) => (
+                        <button
+                          key={i}
+                          onClick={() => setActiveImageIndex(i)}
+                          className={`h-2 w-2 rounded-full transition-all ${i === activeImageIndex ? 'bg-primary-foreground scale-125' : 'bg-primary-foreground/50'}`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Details */}
+              <div className="p-5 space-y-4">
+                <div>
+                  <h2 className="font-display text-xl font-bold text-foreground">{selectedProduct.name}</h2>
+                  <p className="text-lg font-bold mt-1" style={{ color: brandColor }}>
+                    {formatCurrency(Number(selectedProduct.price))}
+                  </p>
+                </div>
+
+                {selectedProduct.description && (
+                  <p className="text-sm text-muted-foreground leading-relaxed">{selectedProduct.description}</p>
+                )}
+
+                {selectedProduct.track_inventory && (
+                  <p className="text-xs text-muted-foreground">
+                    {outOfStock ? "Out of stock" : `${selectedProduct.stock_quantity} in stock`}
+                  </p>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    size="lg"
+                    className="flex-1 font-semibold"
+                    style={{ background: brandColor }}
+                    disabled={outOfStock}
+                    onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}
+                  >
+                    Add to Cart
+                  </Button>
+                  <button
+                    onClick={() => {
+                      if (store.whatsapp_number) {
+                        window.open(`https://wa.me/${store.whatsapp_number}?text=Hi, I'm interested in ${selectedProduct.name}`, "_blank");
+                      }
+                    }}
+                    className="rounded-xl bg-accent p-3 hover:bg-accent/80 transition-colors"
+                  >
+                    <MessageCircle className="h-5 w-5 text-foreground" />
+                  </button>
+                  <button
+                    onClick={() => shareProduct(selectedProduct)}
+                    className="rounded-xl bg-accent p-3 hover:bg-accent/80 transition-colors"
+                  >
+                    <Share2 className="h-5 w-5 text-foreground" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Cart Drawer */}
       {showCart && (
         <div className="fixed inset-0 z-50 flex justify-end">
