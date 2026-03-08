@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, MessageCircle, Share2, Store } from "lucide-react";
+import { ShoppingCart, MessageCircle, Share2, Store, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 interface CartItem {
@@ -16,6 +16,8 @@ const Storefront = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -149,7 +151,11 @@ const Storefront = () => {
               const outOfStock = product.track_inventory && product.stock_quantity <= 0;
 
               return (
-                <div key={product.id} className="group rounded-2xl border border-border/60 bg-card overflow-hidden shadow-card hover:shadow-card-hover transition-all">
+                <div
+                  key={product.id}
+                  className="group cursor-pointer rounded-2xl border border-border/60 bg-card overflow-hidden shadow-card hover:shadow-card-hover transition-all"
+                  onClick={() => { setSelectedProduct(product); setActiveImageIndex(0); }}
+                >
                   <div className="relative aspect-square bg-muted">
                     {mainImage ? (
                       <img src={mainImage} alt={product.name} className="h-full w-full object-cover" />
@@ -173,12 +179,13 @@ const Storefront = () => {
                         className="flex-1 text-xs"
                         style={{ background: brandColor }}
                         disabled={outOfStock}
-                        onClick={() => addToCart(product)}
+                        onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                       >
                         Add to Cart
                       </Button>
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           if (store.whatsapp_number) {
                             window.open(`https://wa.me/${store.whatsapp_number}?text=Hi, I'm interested in ${product.name}`, "_blank");
                           }
@@ -188,7 +195,7 @@ const Storefront = () => {
                         <MessageCircle className="h-3.5 w-3.5 text-foreground" />
                       </button>
                       <button
-                        onClick={() => shareProduct(product)}
+                        onClick={(e) => { e.stopPropagation(); shareProduct(product); }}
                         className="rounded-lg bg-accent p-2 hover:bg-accent/80 transition-colors"
                       >
                         <Share2 className="h-3.5 w-3.5 text-foreground" />
@@ -201,6 +208,114 @@ const Storefront = () => {
           </div>
         )}
       </main>
+
+      {/* Product Detail Modal */}
+      {selectedProduct && (() => {
+        const images = selectedProduct.product_images || [];
+        const outOfStock = selectedProduct.track_inventory && selectedProduct.stock_quantity <= 0;
+        return (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+            <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setSelectedProduct(null)} />
+            <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-card shadow-xl">
+              {/* Close button */}
+              <button
+                onClick={() => setSelectedProduct(null)}
+                className="absolute top-3 right-3 z-10 rounded-full bg-card/80 backdrop-blur-sm p-2 shadow-md hover:bg-accent transition-colors"
+              >
+                <X className="h-5 w-5 text-foreground" />
+              </button>
+
+              {/* Image gallery */}
+              <div className="relative aspect-square bg-muted">
+                {images.length > 0 ? (
+                  <img
+                    src={images[activeImageIndex]?.image_url}
+                    alt={selectedProduct.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center">
+                    <Store className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                )}
+                {images.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setActiveImageIndex((prev) => (prev - 1 + images.length) % images.length)}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-card/80 backdrop-blur-sm p-1.5 shadow-md hover:bg-accent transition-colors"
+                    >
+                      <ChevronLeft className="h-5 w-5 text-foreground" />
+                    </button>
+                    <button
+                      onClick={() => setActiveImageIndex((prev) => (prev + 1) % images.length)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-card/80 backdrop-blur-sm p-1.5 shadow-md hover:bg-accent transition-colors"
+                    >
+                      <ChevronRight className="h-5 w-5 text-foreground" />
+                    </button>
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                      {images.map((_: any, i: number) => (
+                        <button
+                          key={i}
+                          onClick={() => setActiveImageIndex(i)}
+                          className={`h-2 w-2 rounded-full transition-all ${i === activeImageIndex ? 'bg-primary-foreground scale-125' : 'bg-primary-foreground/50'}`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Details */}
+              <div className="p-5 space-y-4">
+                <div>
+                  <h2 className="font-display text-xl font-bold text-foreground">{selectedProduct.name}</h2>
+                  <p className="text-lg font-bold mt-1" style={{ color: brandColor }}>
+                    {formatCurrency(Number(selectedProduct.price))}
+                  </p>
+                </div>
+
+                {selectedProduct.description && (
+                  <p className="text-sm text-muted-foreground leading-relaxed">{selectedProduct.description}</p>
+                )}
+
+                {selectedProduct.track_inventory && (
+                  <p className="text-xs text-muted-foreground">
+                    {outOfStock ? "Out of stock" : `${selectedProduct.stock_quantity} in stock`}
+                  </p>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    size="lg"
+                    className="flex-1 font-semibold"
+                    style={{ background: brandColor }}
+                    disabled={outOfStock}
+                    onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}
+                  >
+                    Add to Cart
+                  </Button>
+                  <button
+                    onClick={() => {
+                      if (store.whatsapp_number) {
+                        window.open(`https://wa.me/${store.whatsapp_number}?text=Hi, I'm interested in ${selectedProduct.name}`, "_blank");
+                      }
+                    }}
+                    className="rounded-xl bg-accent p-3 hover:bg-accent/80 transition-colors"
+                  >
+                    <MessageCircle className="h-5 w-5 text-foreground" />
+                  </button>
+                  <button
+                    onClick={() => shareProduct(selectedProduct)}
+                    className="rounded-xl bg-accent p-3 hover:bg-accent/80 transition-colors"
+                  >
+                    <Share2 className="h-5 w-5 text-foreground" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Cart Drawer */}
       {showCart && (
