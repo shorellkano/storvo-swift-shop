@@ -19,6 +19,7 @@ const Storefront = () => {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchStore = async () => {
