@@ -146,7 +146,7 @@ const StoreSetup = () => {
       }
 
       toast.success("Your store is live! 🎉");
-      navigate("/dashboard");
+      setTimeout(() => navigate("/dashboard"), 1500);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
