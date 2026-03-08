@@ -67,7 +67,7 @@ const Storefront = () => {
         next.delete(product.id);
         return next;
       });
-    }, 1200);
+    }, 2000);
     toast.success("Added to cart!");
   }, []);
 
