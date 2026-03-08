@@ -37,6 +37,7 @@ const App = () => (
             <Route path="/dashboard/settings" element={<StoreSettings />} />
             <Route path="/store/:slug" element={<Storefront />} />
             <Route path="/store/:slug/checkout" element={<Checkout />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
