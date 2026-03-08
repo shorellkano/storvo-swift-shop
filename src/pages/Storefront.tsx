@@ -380,7 +380,7 @@ const Storefront = () => {
                 </div>
 
                 <Link to={`/store/${slug}/checkout`} state={{ cart, store }}>
-                  <Button size="lg" className="mt-6 w-full" style={{ background: brandColor }}>
+                  <Button size="lg" className="mt-6 w-full transition-all duration-150 active:scale-95" style={{ background: brandColor }}>
                     Checkout · {formatCurrency(orderTotal)}
                   </Button>
                 </Link>

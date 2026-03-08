@@ -211,11 +211,15 @@ const Checkout = () => {
                 form="checkout-form"
                 type="submit"
                 size="lg"
-                className="mt-6 w-full"
+                className="mt-6 w-full transition-all duration-150 active:scale-95"
                 style={{ background: brandColor }}
                 disabled={loading}
               >
-                {loading ? "Placing order..." : `Pay ${formatCurrency(orderTotal)}`}
+                {loading ? (
+                  <><span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent inline-block" /> Placing order...</>
+                ) : (
+                  `Pay ${formatCurrency(orderTotal)}`
+                )}
               </Button>
             </div>
           </div>
