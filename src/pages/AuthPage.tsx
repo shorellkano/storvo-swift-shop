@@ -16,7 +16,27 @@ const AuthPage = () => {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
   const navigate = useNavigate();
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("Check your email for the password reset link!");
+      setShowForgot(false);
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,7 +170,40 @@ const AuthPage = () => {
           <Button variant="hero" size="lg" className="w-full" disabled={loading}>
             {loading ? "Please wait..." : isLogin ? "Sign In" : "Create Account"}
           </Button>
+
+          {isLogin && (
+            <button
+              type="button"
+              onClick={() => setShowForgot(true)}
+              className="mt-3 w-full text-center text-sm font-medium text-storvo-indigo hover:underline"
+            >
+              Forgot password?
+            </button>
+          )}
         </form>
+
+        {showForgot && (
+          <div className="mt-4 rounded-xl border border-border bg-muted/30 p-4">
+            <p className="mb-3 text-sm font-medium text-foreground">Reset your password</p>
+            <form onSubmit={handleForgotPassword} className="space-y-3">
+              <Input
+                type="email"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                placeholder="Enter your email"
+                required
+              />
+              <div className="flex gap-2">
+                <Button variant="hero" size="sm" className="flex-1" disabled={resetLoading}>
+                  {resetLoading ? "Sending..." : "Send Reset Link"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowForgot(false)} type="button">
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </div>
+        )}
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           {isLogin ? "Don't have an account? " : "Already have an account? "}

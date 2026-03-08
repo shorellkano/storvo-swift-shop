@@ -14,6 +14,7 @@ import Orders from "./pages/Orders";
 import StoreSettings from "./pages/StoreSettings";
 import Storefront from "./pages/Storefront";
 import Checkout from "./pages/Checkout";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/dashboard/settings" element={<StoreSettings />} />
             <Route path="/store/:slug" element={<Storefront />} />
             <Route path="/store/:slug/checkout" element={<Checkout />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
