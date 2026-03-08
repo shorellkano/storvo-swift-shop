@@ -94,11 +94,17 @@ const Hero = () => {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-                {[1, 2, 3].map((i) => (
+                {[
+                  { name: "Silk Press Bundle", price: "₦25,000", color: "from-storvo-indigo/20 to-storvo-purple/10" },
+                  { name: "Deep Wave 18\"", price: "₦45,000", color: "from-storvo-purple/20 to-pink-200/30" },
+                  { name: "Frontal Wig Cap", price: "₦12,500", color: "from-amber-200/30 to-storvo-indigo/10" },
+                ].map((product, i) => (
                   <div key={i} className="rounded-xl bg-card p-4 shadow-card">
-                    <div className="mb-3 aspect-square rounded-lg bg-accent" />
-                    <div className="h-3 w-3/4 rounded bg-muted" />
-                    <div className="mt-2 h-3 w-1/2 rounded bg-primary/20" />
+                    <div className={`mb-3 aspect-square rounded-lg bg-gradient-to-br ${product.color} flex items-center justify-center`}>
+                      <ShoppingBag className="h-8 w-8 text-muted-foreground/30" />
+                    </div>
+                    <p className="text-xs font-medium text-foreground truncate">{product.name}</p>
+                    <p className="mt-1 text-xs font-bold text-primary">{product.price}</p>
                   </div>
                 ))}
               </div>
