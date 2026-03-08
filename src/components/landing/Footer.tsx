@@ -6,7 +6,7 @@ const Footer = () => {
       <div className="mx-auto max-w-6xl px-6">
         <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
           <div className="flex items-center gap-2">
-            <img src={storvoLogo} alt="Storvo" className="h-6" />
+            <img src={storvoLogo} alt="Storvo" className="h-10" />
           </div>
 
           <div className="flex items-center gap-8">
