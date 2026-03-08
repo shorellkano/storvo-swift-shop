@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Plus, Package } from "lucide-react";
+import { Plus, Package, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import ProductCard from "@/components/dashboard/ProductCard";
 
 const Products = () => {
   const { user } = useAuth();
@@ -13,11 +15,22 @@ const Products = () => {
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+
+  const fetchProducts = async (storeId: string) => {
+    const { data: prods } = await supabase
+      .from("products")
+      .select("*, product_images(*)")
+      .eq("store_id", storeId)
+      .order("created_at", { ascending: false });
+    setProducts(prods || []);
+    setLoading(false);
+  };
 
   useEffect(() => {
     if (!user) return;
 
-    const fetch = async () => {
+    const init = async () => {
       const { data: storeData } = await supabase
         .from("stores")
         .select("*")
@@ -28,22 +41,15 @@ const Products = () => {
 
       if (!storeData) { navigate("/setup"); return; }
       setStore(storeData);
-
-      const { data: prods } = await supabase
-        .from("products")
-        .select("*, product_images(*)")
-        .eq("store_id", storeData.id)
-        .order("created_at", { ascending: false });
-
-      setProducts(prods || []);
-      setLoading(false);
+      fetchProducts(storeData.id);
     };
 
-    fetch();
+    init();
   }, [user, navigate]);
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN" }).format(amount);
+  const filtered = products.filter((p) =>
+    p.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   if (!store || loading) return null;
 
@@ -56,13 +62,28 @@ const Products = () => {
             <SidebarTrigger className="mr-4" />
             <h2 className="font-display text-lg font-semibold text-foreground">Products</h2>
           </header>
-          <main className="flex-1 p-6 bg-background">
-            <div className="flex items-center justify-between mb-6">
-              <h1 className="font-display text-2xl font-bold text-foreground">Your Products</h1>
+          <main className="flex-1 p-4 sm:p-6 bg-background">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <h1 className="font-display text-2xl font-bold text-foreground">Your Products</h1>
+                <p className="text-sm text-muted-foreground">{products.length} product{products.length !== 1 ? "s" : ""}</p>
+              </div>
               <Button variant="hero" onClick={() => navigate("/dashboard/products/new")}>
                 <Plus className="mr-2 h-4 w-4" /> Add Product
               </Button>
             </div>
+
+            {products.length > 3 && (
+              <div className="relative mb-6">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search products..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            )}
 
             {products.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-2xl border border-border/60 bg-card p-16 shadow-card">
@@ -74,37 +95,18 @@ const Products = () => {
                 </Button>
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {products.map((product) => {
-                  const mainImage = product.product_images?.[0]?.image_url;
-                  return (
-                    <div key={product.id} className="rounded-2xl border border-border/60 bg-card overflow-hidden shadow-card hover:shadow-card-hover transition-all">
-                      <div className="aspect-square bg-muted">
-                        {mainImage ? (
-                          <img src={mainImage} alt={product.name} className="h-full w-full object-cover" />
-                        ) : (
-                          <div className="flex h-full items-center justify-center">
-                            <Package className="h-8 w-8 text-muted-foreground" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-4">
-                        <h3 className="font-display font-semibold text-foreground truncate">{product.name}</h3>
-                        <p className="text-sm font-medium text-storvo-indigo">{formatCurrency(Number(product.price))}</p>
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                            product.is_active ? "bg-emerald-50 text-emerald-700" : "bg-muted text-muted-foreground"
-                          }`}>
-                            {product.is_active ? "Active" : "Inactive"}
-                          </span>
-                          <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
-                            {product.product_type}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="grid gap-4 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {filtered.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    storeSlug={store.slug}
+                    onDeleted={() => fetchProducts(store.id)}
+                  />
+                ))}
+                {filtered.length === 0 && (
+                  <p className="col-span-full text-center py-12 text-muted-foreground">No products match your search</p>
+                )}
               </div>
             )}
           </main>

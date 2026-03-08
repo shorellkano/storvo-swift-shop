@@ -10,6 +10,8 @@ import StoreSetup from "./pages/StoreSetup";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import AddProduct from "./pages/AddProduct";
+import EditProduct from "./pages/EditProduct";
+import ProductPreview from "./pages/ProductPreview";
 import Orders from "./pages/Orders";
 import StoreSettings from "./pages/StoreSettings";
 import Storefront from "./pages/Storefront";

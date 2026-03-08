@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Upload, X } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import PostUploadSuccess from "@/components/dashboard/PostUploadSuccess";
 
 const AddProduct = () => {
   const { user } = useAuth();
@@ -20,6 +21,7 @@ const AddProduct = () => {
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [createdProduct, setCreatedProduct] = useState<{ id: string; name: string } | null>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -45,9 +47,8 @@ const AddProduct = () => {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const maxImages = 3; // Free plan
-    if (images.length + files.length > maxImages) {
-      toast.error(`Maximum ${maxImages} images on Free plan`);
+    if (images.length + files.length > 5) {
+      toast.error("Maximum 5 images per product");
       return;
     }
     setImages((prev) => [...prev, ...files]);
@@ -65,6 +66,21 @@ const AddProduct = () => {
 
   const generateSlug = (name: string) =>
     name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+  const resetForm = () => {
+    setForm({
+      name: "",
+      price: "",
+      description: "",
+      productType: "physical",
+      trackInventory: false,
+      stockQuantity: 0,
+      digitalFileUrl: "",
+    });
+    setImages([]);
+    setPreviews([]);
+    setCreatedProduct(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,10 +118,7 @@ const AddProduct = () => {
           .from("product-images")
           .upload(filePath, file);
 
-        if (uploadError) {
-          console.error("Upload error:", uploadError);
-          continue;
-        }
+        if (uploadError) { console.error("Upload error:", uploadError); continue; }
 
         const { data: { publicUrl } } = supabase.storage
           .from("product-images")
@@ -118,8 +131,7 @@ const AddProduct = () => {
         });
       }
 
-      toast.success("Product added successfully! 🎉");
-      navigate("/dashboard/products");
+      setCreatedProduct({ id: product.id, name: product.name });
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -128,6 +140,31 @@ const AddProduct = () => {
   };
 
   if (!store) return null;
+
+  // Show success screen after creation
+  if (createdProduct) {
+    return (
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <DashboardSidebar store={store} />
+          <div className="flex-1 flex flex-col">
+            <header className="h-14 flex items-center border-b border-border/60 bg-card px-4">
+              <SidebarTrigger className="mr-4" />
+              <h2 className="font-display text-lg font-semibold text-foreground">Product Added</h2>
+            </header>
+            <main className="flex-1 p-6 bg-background flex items-center justify-center">
+              <PostUploadSuccess
+                productName={createdProduct.name}
+                productId={createdProduct.id}
+                storeSlug={store.slug}
+                onAddAnother={resetForm}
+              />
+            </main>
+          </div>
+        </div>
+      </SidebarProvider>
+    );
+  }
 
   return (
     <SidebarProvider>
@@ -138,12 +175,12 @@ const AddProduct = () => {
             <SidebarTrigger className="mr-4" />
             <h2 className="font-display text-lg font-semibold text-foreground">Add Product</h2>
           </header>
-          <main className="flex-1 p-6 bg-background">
+          <main className="flex-1 p-4 sm:p-6 bg-background">
             <Button variant="ghost" onClick={() => navigate("/dashboard/products")} className="mb-4">
               <ArrowLeft className="mr-2 h-4 w-4" /> Back to Products
             </Button>
 
-            <div className="mx-auto max-w-2xl rounded-2xl border border-border/60 bg-card p-8 shadow-card">
+            <div className="mx-auto max-w-2xl rounded-2xl border border-border/60 bg-card p-6 sm:p-8 shadow-card">
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <Label htmlFor="name">Product Name</Label>
@@ -238,7 +275,7 @@ const AddProduct = () => {
                 {/* Image Upload */}
                 <div>
                   <Label>Product Images</Label>
-                  <div className="mt-2 grid grid-cols-3 gap-3">
+                  <div className="mt-2 grid grid-cols-3 sm:grid-cols-5 gap-3">
                     {previews.map((preview, i) => (
                       <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border">
                         <img src={preview} alt="" className="h-full w-full object-cover" />
@@ -251,7 +288,7 @@ const AddProduct = () => {
                         </button>
                       </div>
                     ))}
-                    {previews.length < 3 && (
+                    {previews.length < 5 && (
                       <label className="flex aspect-square cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border hover:border-primary/40 transition-colors">
                         <input
                           type="file"
@@ -263,7 +300,7 @@ const AddProduct = () => {
                       </label>
                     )}
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">Up to 3 images, 5MB each (Free plan)</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Up to 5 images, 5MB each</p>
                 </div>
 
                 <Button variant="hero" size="lg" className="w-full" disabled={loading}>
