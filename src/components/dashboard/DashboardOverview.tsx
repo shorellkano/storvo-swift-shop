@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubscription } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
-import { Plus, DollarSign, ShoppingCart, Package } from "lucide-react";
+import { Plus, DollarSign, ShoppingCart, Package, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
+import FreePlanBanner from "@/components/dashboard/FreePlanBanner";
+import UpgradeModal from "@/components/dashboard/UpgradeModal";
 
 interface DashboardOverviewProps {
   store: any;
@@ -10,12 +14,15 @@ interface DashboardOverviewProps {
 
 const DashboardOverview = ({ store }: DashboardOverviewProps) => {
   const navigate = useNavigate();
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalOrders: 0,
     totalProducts: 0,
   });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
+
+  const { isPro, productCount, canAddProduct } = useSubscription(store?.id || null);
 
   useEffect(() => {
     if (!store) return;
@@ -35,7 +42,6 @@ const DashboardOverview = ({ store }: DashboardOverviewProps) => {
         totalProducts: productsRes.count || 0,
       });
 
-      // Recent orders
       const { data: recent } = await supabase
         .from("orders")
         .select("*, customers(name, phone)")
@@ -51,6 +57,14 @@ const DashboardOverview = ({ store }: DashboardOverviewProps) => {
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN" }).format(amount);
+
+  const handleAddProduct = () => {
+    if (!canAddProduct) {
+      setShowUpgrade(true);
+    } else {
+      navigate("/dashboard/products/new");
+    }
+  };
 
   const statCards = [
     {
@@ -77,14 +91,35 @@ const DashboardOverview = ({ store }: DashboardOverviewProps) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-foreground">Welcome back 👋</h1>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="font-display text-2xl font-bold text-foreground">Welcome back 👋</h1>
+            <Badge variant={isPro ? "default" : "secondary"} className="text-xs">
+              {isPro ? (
+                <><Crown className="mr-1 h-3 w-3" /> Pro</>
+              ) : (
+                "Free"
+              )}
+            </Badge>
+          </div>
           <p className="text-sm text-muted-foreground">Here's what's happening with {store.name}</p>
         </div>
-        <Button variant="hero" onClick={() => navigate("/dashboard/products/new")}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Product
-        </Button>
+        <div className="flex items-center gap-2">
+          {!isPro && (
+            <Button variant="outline" size="sm" onClick={() => setShowUpgrade(true)}>
+              <Crown className="mr-1.5 h-3.5 w-3.5" /> Upgrade
+            </Button>
+          )}
+          <Button variant="hero" onClick={handleAddProduct}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Product
+          </Button>
+        </div>
       </div>
+
+      {/* Free plan banner when approaching limit */}
+      {!isPro && productCount >= 7 && (
+        <FreePlanBanner productCount={productCount} onUpgrade={() => setShowUpgrade(true)} />
+      )}
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
@@ -129,6 +164,8 @@ const DashboardOverview = ({ store }: DashboardOverviewProps) => {
           </div>
         )}
       </div>
+
+      <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} />
     </div>
   );
 };

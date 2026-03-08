@@ -2,8 +2,11 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubscription } from "@/hooks/useSubscription";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import BillingSection from "@/components/dashboard/BillingSection";
+import UpgradeModal from "@/components/dashboard/UpgradeModal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,12 +30,14 @@ const StoreSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
+  const { subscription } = useSubscription(store?.id || null);
 
   // Form state
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [brandColor, setBrandColor] = useState("#6366F1");
-  const [customColor, setCustomColor] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [instagramHandle, setInstagramHandle] = useState("");
   const [deliveryFee, setDeliveryFee] = useState("");
@@ -157,6 +162,12 @@ const StoreSettings = () => {
           </header>
           <main className="flex-1 p-6 bg-background">
             <div className="mx-auto max-w-2xl space-y-6">
+              {/* Billing & Subscription */}
+              <BillingSection
+                subscription={subscription}
+                onUpgrade={() => setShowUpgrade(true)}
+              />
+
               {/* Store Logo */}
               <Card className="shadow-card">
                 <CardHeader>
@@ -355,6 +366,7 @@ const StoreSettings = () => {
           </main>
         </div>
       </div>
+      <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} />
     </SidebarProvider>
   );
 };

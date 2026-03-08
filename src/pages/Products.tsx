@@ -2,12 +2,15 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription, FREE_PRODUCT_LIMIT } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
-import { Plus, Package, Search } from "lucide-react";
+import { Plus, Package, Search, Crown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import ProductCard from "@/components/dashboard/ProductCard";
+import FreePlanBanner from "@/components/dashboard/FreePlanBanner";
+import UpgradeModal from "@/components/dashboard/UpgradeModal";
 
 const Products = () => {
   const { user } = useAuth();
@@ -16,6 +19,9 @@ const Products = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [showUpgrade, setShowUpgrade] = useState(false);
+
+  const { canAddProduct, productCount, isPro, refetch } = useSubscription(store?.id || null);
 
   const fetchProducts = async (storeId: string) => {
     const { data: prods } = await supabase
@@ -47,6 +53,21 @@ const Products = () => {
     init();
   }, [user, navigate]);
 
+  const handleAddProduct = () => {
+    if (!canAddProduct) {
+      setShowUpgrade(true);
+    } else {
+      navigate("/dashboard/products/new");
+    }
+  };
+
+  const handleProductDeleted = () => {
+    if (store) {
+      fetchProducts(store.id);
+      refetch();
+    }
+  };
+
   const filtered = products.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -66,12 +87,22 @@ const Products = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div>
                 <h1 className="font-display text-2xl font-bold text-foreground">Your Products</h1>
-                <p className="text-sm text-muted-foreground">{products.length} product{products.length !== 1 ? "s" : ""}</p>
+                <p className="text-sm text-muted-foreground">
+                  {products.length} product{products.length !== 1 ? "s" : ""}
+                  {!isPro && ` · ${FREE_PRODUCT_LIMIT - productCount} remaining`}
+                </p>
               </div>
-              <Button variant="hero" onClick={() => navigate("/dashboard/products/new")}>
+              <Button variant="hero" onClick={handleAddProduct}>
                 <Plus className="mr-2 h-4 w-4" /> Add Product
               </Button>
             </div>
+
+            {/* Free plan banner */}
+            {!isPro && productCount >= 7 && (
+              <div className="mb-6">
+                <FreePlanBanner productCount={productCount} onUpgrade={() => setShowUpgrade(true)} />
+              </div>
+            )}
 
             {products.length > 3 && (
               <div className="relative mb-6">
@@ -101,7 +132,7 @@ const Products = () => {
                     key={product.id}
                     product={product}
                     storeSlug={store.slug}
-                    onDeleted={() => fetchProducts(store.id)}
+                    onDeleted={handleProductDeleted}
                   />
                 ))}
                 {filtered.length === 0 && (
@@ -112,6 +143,7 @@ const Products = () => {
           </main>
         </div>
       </div>
+      <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} reason="limit" />
     </SidebarProvider>
   );
 };
