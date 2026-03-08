@@ -127,7 +127,7 @@ const DashboardSidebar = ({ store }: DashboardSidebarProps) => {
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} />
+      <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} storeId={store?.id || null} />
     </>
   );
 };

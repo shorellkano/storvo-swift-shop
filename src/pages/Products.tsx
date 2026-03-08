@@ -143,7 +143,7 @@ const Products = () => {
           </main>
         </div>
       </div>
-      <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} reason="limit" />
+      <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} storeId={store?.id || null} reason="limit" />
     </SidebarProvider>
   );
 };
