@@ -123,8 +123,7 @@ const AddProduct = () => {
 
       if (error) throw error;
 
-      for (let i = 0; i < images.length; i++) {
-        const file = images[i];
+      await Promise.all(images.map(async (file, i) => {
         const fileExt = file.name.split(".").pop();
         const filePath = `${store.id}/${product.id}/${i}.${fileExt}`;
 
@@ -132,7 +131,7 @@ const AddProduct = () => {
           .from("product-images")
           .upload(filePath, file);
 
-        if (uploadError) { console.error("Upload error:", uploadError); continue; }
+        if (uploadError) { console.error("Upload error:", uploadError); return; }
 
         const { data: { publicUrl } } = supabase.storage
           .from("product-images")
@@ -143,7 +142,7 @@ const AddProduct = () => {
           image_url: publicUrl,
           display_order: i,
         });
-      }
+      }));
 
       setCreatedProduct({ id: product.id, name: product.name });
     } catch (error: any) {
