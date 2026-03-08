@@ -15,9 +15,10 @@ const Footer = () => {
             <a href="#" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Support</a>
           </div>
 
-          <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Storvo. All rights reserved.
-          </p>
+          <div className="text-sm text-muted-foreground text-center md:text-right">
+            <p>© {new Date().getFullYear()} Storvo. All rights reserved.</p>
+            <p className="mt-1">Powered by Upbeatz Marcom</p>
+          </div>
         </div>
       </div>
     </footer>
