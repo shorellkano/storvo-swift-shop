@@ -14,6 +14,7 @@ import Orders from "./pages/Orders";
 import StoreSettings from "./pages/StoreSettings";
 import Storefront from "./pages/Storefront";
 import Checkout from "./pages/Checkout";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
