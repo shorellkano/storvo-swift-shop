@@ -47,7 +47,7 @@ const Storefront = () => {
     fetchStore();
   }, [slug]);
 
-  const addToCart = useCallback((product: any) => {
+  const addToCart = (product: any) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
@@ -60,16 +60,17 @@ const Storefront = () => {
       return [...prev, { product, quantity: 1 }];
     });
     // Show "Added ✓" feedback on the button
-    setAddedIds((prev) => ({ ...prev, [product.id]: true }));
+    const id = product.id;
+    setAddedIds((prev) => ({ ...prev, [id]: true }));
     setTimeout(() => {
       setAddedIds((prev) => {
         const next = { ...prev };
-        delete next[product.id];
+        delete next[id];
         return next;
       });
     }, 2000);
     toast.success("Added to cart!");
-  }, []);
+  };
 
   const updateQuantity = (productId: string, delta: number) => {
     setCart((prev) =>
