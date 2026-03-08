@@ -151,7 +151,11 @@ const Storefront = () => {
               const outOfStock = product.track_inventory && product.stock_quantity <= 0;
 
               return (
-                <div key={product.id} className="group rounded-2xl border border-border/60 bg-card overflow-hidden shadow-card hover:shadow-card-hover transition-all">
+                <div
+                  key={product.id}
+                  className="group cursor-pointer rounded-2xl border border-border/60 bg-card overflow-hidden shadow-card hover:shadow-card-hover transition-all"
+                  onClick={() => { setSelectedProduct(product); setActiveImageIndex(0); }}
+                >
                   <div className="relative aspect-square bg-muted">
                     {mainImage ? (
                       <img src={mainImage} alt={product.name} className="h-full w-full object-cover" />
@@ -175,12 +179,13 @@ const Storefront = () => {
                         className="flex-1 text-xs"
                         style={{ background: brandColor }}
                         disabled={outOfStock}
-                        onClick={() => addToCart(product)}
+                        onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                       >
                         Add to Cart
                       </Button>
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           if (store.whatsapp_number) {
                             window.open(`https://wa.me/${store.whatsapp_number}?text=Hi, I'm interested in ${product.name}`, "_blank");
                           }
@@ -190,7 +195,7 @@ const Storefront = () => {
                         <MessageCircle className="h-3.5 w-3.5 text-foreground" />
                       </button>
                       <button
-                        onClick={() => shareProduct(product)}
+                        onClick={(e) => { e.stopPropagation(); shareProduct(product); }}
                         className="rounded-lg bg-accent p-2 hover:bg-accent/80 transition-colors"
                       >
                         <Share2 className="h-3.5 w-3.5 text-foreground" />
