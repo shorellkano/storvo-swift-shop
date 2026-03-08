@@ -17,7 +17,7 @@ interface UseSubscriptionReturn {
   refetch: () => Promise<void>;
 }
 
-const FREE_PRODUCT_LIMIT = 10;
+export const FREE_PRODUCT_LIMIT = 10;
 
 export const useSubscription = (storeId: string | null): UseSubscriptionReturn => {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
