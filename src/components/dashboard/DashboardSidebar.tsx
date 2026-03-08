@@ -61,7 +61,7 @@ const DashboardSidebar = ({ store }: DashboardSidebarProps) => {
     <>
       <Sidebar collapsible="icon">
         <SidebarContent>
-          <div className="flex items-center gap-2 px-4 py-4">
+          <button onClick={() => navigate("/")} className="flex items-center gap-2 px-4 py-4 w-full">
             {!collapsed && (
               <div className="flex items-center">
                 <img src={storvoLogo} alt="Storvo" className="h-10 w-auto shrink-0 rounded-md border border-border/60 bg-card/80 p-1 shadow-sm" />
@@ -72,7 +72,7 @@ const DashboardSidebar = ({ store }: DashboardSidebarProps) => {
                 <Store className="h-4 w-4 text-primary-foreground" />
               </div>
             )}
-          </div>
+          </button>
 
           {!collapsed && store && (
             <div className="mx-4 mb-4 rounded-xl bg-accent p-3">
