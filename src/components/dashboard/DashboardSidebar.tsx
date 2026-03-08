@@ -63,9 +63,8 @@ const DashboardSidebar = ({ store }: DashboardSidebarProps) => {
         <SidebarContent>
           <div className="flex items-center gap-2 px-4 py-4">
             {!collapsed && (
-              <div className="flex items-center gap-2">
-                <img src={storvoLogo} alt="Storvo" className="h-8 w-auto shrink-0" />
-                <span className="font-display text-base font-semibold tracking-tight text-foreground">Storvo</span>
+              <div className="flex items-center">
+                <img src={storvoLogo} alt="Storvo" className="h-10 w-auto shrink-0 rounded-md border border-border/60 bg-card/80 p-1 shadow-sm" />
               </div>
             )}
             {collapsed && (
