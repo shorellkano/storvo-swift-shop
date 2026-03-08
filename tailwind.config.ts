@@ -48,11 +48,16 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
         storvo: {
-          indigo: "hsl(var(--storvo-indigo))",
-          "indigo-dark": "hsl(var(--storvo-indigo-dark))",
-          "indigo-light": "hsl(var(--storvo-indigo-light))",
+          primary: "hsl(var(--storvo-primary))",
+          "primary-dark": "hsl(var(--storvo-primary-dark))",
+          "primary-light": "hsl(var(--storvo-primary-light))",
           purple: "hsl(var(--storvo-purple))",
           violet: "hsl(var(--storvo-violet))",
+          cyan: "hsl(var(--storvo-cyan))",
+          // Keep old aliases working
+          indigo: "hsl(var(--storvo-primary))",
+          "indigo-dark": "hsl(var(--storvo-primary-dark))",
+          "indigo-light": "hsl(var(--storvo-primary-light))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
@@ -66,35 +71,34 @@ export default {
         },
       },
       fontFamily: {
-        display: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+        display: ['Inter', 'system-ui', 'sans-serif'],
         body: ['Inter', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        "2xl": "1rem",
+        "3xl": "1.5rem",
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "float": {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(-10px)" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "float": "float 6s ease-in-out infinite",
       },
     },
   },

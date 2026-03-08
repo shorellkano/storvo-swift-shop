@@ -2,7 +2,7 @@ import storvoLogo from "@/assets/storvo-logo.png";
 
 const Footer = () => {
   return (
-    <footer className="border-t border-border/60 bg-card py-12">
+    <footer className="border-t border-border/40 bg-background py-12">
       <div className="mx-auto max-w-6xl px-6">
         <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
           <div className="flex items-center gap-2">
