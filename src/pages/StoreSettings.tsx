@@ -366,7 +366,7 @@ const StoreSettings = () => {
           </main>
         </div>
       </div>
-      <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} />
+      <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} storeId={store?.id || null} />
     </SidebarProvider>
   );
 };
