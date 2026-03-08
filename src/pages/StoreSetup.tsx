@@ -212,6 +212,14 @@ const StoreSetup = () => {
     exit: { opacity: 0, x: -30 },
   };
 
+  if (!initialCheckDone) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center gradient-hero px-4 py-8">
       <div className="pointer-events-none absolute -top-40 right-0 h-[600px] w-[600px] glow-indigo" />
