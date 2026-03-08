@@ -5,9 +5,8 @@ const Footer = () => {
     <footer className="border-t border-border/40 bg-background py-12">
       <div className="mx-auto max-w-6xl px-6">
         <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-          <div className="flex items-center gap-3">
-            <img src={storvoLogo} alt="Storvo" className="h-10 w-auto shrink-0" />
-            <span className="font-display text-lg font-bold tracking-tight text-foreground">Storvo</span>
+          <div className="flex items-center">
+            <img src={storvoLogo} alt="Storvo" className="h-12 w-auto shrink-0 rounded-md border border-border/60 bg-card/80 p-1 shadow-sm" />
           </div>
 
           <div className="flex items-center gap-8">
