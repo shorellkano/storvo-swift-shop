@@ -35,6 +35,11 @@ const Storefront = () => {
       if (!storeData) { setLoading(false); return; }
       setStore(storeData);
 
+      // Check if current user is the store owner
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && user.id === storeData.user_id) {
+        setIsOwner(true);
+      }
       const { data: prods } = await supabase
         .from("products")
         .select("*, product_images(*)")
