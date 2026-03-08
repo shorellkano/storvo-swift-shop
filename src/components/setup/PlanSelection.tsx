@@ -52,18 +52,16 @@ const PlanSelection = ({ onSelectFree, onSelectPro }: PlanSelectionProps) => {
           onClick={onSelectPro}
           className="w-full rounded-xl border-2 border-primary/40 bg-accent/30 p-4 text-left transition-all hover:border-primary hover:shadow-card-hover relative overflow-hidden"
         >
-          <div className="absolute top-0 right-0 rounded-bl-lg bg-primary px-2.5 py-0.5">
+          <div className="absolute top-0 left-0 rounded-br-lg bg-primary px-2.5 py-0.5">
             <span className="text-xs font-semibold text-primary-foreground">Recommended</span>
           </div>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Crown className="h-4 w-4 text-primary" />
-              <span className="font-display text-base font-bold text-foreground">Pro Plan</span>
-            </div>
-            <div className="text-right">
-              <span className="font-display text-lg font-bold text-foreground">₦3,500</span>
-              <span className="text-xs text-muted-foreground">/mo</span>
-            </div>
+          <div className="flex items-center gap-2 mt-5 mb-1">
+            <Crown className="h-4 w-4 text-primary" />
+            <span className="font-display text-base font-bold text-foreground">Pro Plan</span>
+          </div>
+          <div className="mb-2">
+            <span className="font-display text-lg font-bold text-foreground">₦3,500</span>
+            <span className="text-xs text-muted-foreground">/mo</span>
           </div>
           <p className="text-sm text-muted-foreground mb-3">
             Unlimited products and advanced tools.
