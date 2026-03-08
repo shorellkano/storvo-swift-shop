@@ -38,8 +38,41 @@ const PRO_FEATURES = [
   "Priority support",
 ];
 
-const BillingSection = ({ subscription, onUpgrade }: BillingSectionProps) => {
+const BillingSection = ({ subscription, storeId, onUpgrade, onCancelled }: BillingSectionProps) => {
   const isPro = subscription?.plan === "pro" && subscription?.is_active;
+  const [cancelling, setCancelling] = useState(false);
+  const { toast } = useToast();
+
+  const handleCancel = async () => {
+    if (!storeId) return;
+    setCancelling(true);
+    try {
+      const { error } = await supabase
+        .from("subscriptions")
+        .update({
+          plan: "free" as const,
+          is_active: true,
+          expires_at: null,
+        })
+        .eq("store_id", storeId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Subscription cancelled",
+        description: "You've been moved back to the Free plan.",
+      });
+      onCancelled();
+    } catch (err: any) {
+      toast({
+        title: "Failed to cancel",
+        description: err.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   return (
     <Card className="shadow-card">
@@ -50,7 +83,6 @@ const BillingSection = ({ subscription, onUpgrade }: BillingSectionProps) => {
         <CardDescription>Manage your plan and billing</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
-        {/* Current Plan */}
         <div className="rounded-xl border border-border/60 bg-muted/30 p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -99,9 +131,32 @@ const BillingSection = ({ subscription, onUpgrade }: BillingSectionProps) => {
         </div>
 
         {isPro && (
-          <p className="text-xs text-muted-foreground text-center">
-            To cancel your subscription, contact support at hello@storvo.co
-          </p>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" className="w-full text-muted-foreground">
+                Cancel subscription
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Cancel Pro subscription?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You'll lose access to unlimited products, analytics, custom domain support, and other Pro features. Your store will revert to the Free plan with a 10-product limit.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Keep Pro</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleCancel}
+                  disabled={cancelling}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {cancelling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Yes, cancel
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
       </CardContent>
     </Card>

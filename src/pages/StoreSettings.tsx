@@ -165,7 +165,9 @@ const StoreSettings = () => {
               {/* Billing & Subscription */}
               <BillingSection
                 subscription={subscription}
+                storeId={store?.id || null}
                 onUpgrade={() => setShowUpgrade(true)}
+                onCancelled={() => refetchSubscription()}
               />
 
               {/* Store Logo */}
