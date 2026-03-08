@@ -280,9 +280,19 @@ const StoreSetup = () => {
 
       <div className="relative w-full max-w-lg">
         {/* Logo */}
-        <div className="mb-5 flex justify-center">
+        <div className="mb-5 flex items-center justify-between">
           <button onClick={() => navigate("/")}>
             <img src={storvoLogo} alt="Storvo" className="h-7" />
+          </button>
+          <button
+            onClick={async () => {
+              await signOut();
+              navigate("/auth");
+            }}
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Sign out
           </button>
         </div>
 
