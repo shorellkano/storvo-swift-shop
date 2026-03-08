@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import storvoLogo from "@/assets/storvo-logo.png";
 import { motion, AnimatePresence } from "framer-motion";
+import { LogOut } from "lucide-react";
 import SetupProgress from "@/components/setup/SetupProgress";
 import StoreDetailsStep from "@/components/setup/StoreDetailsStep";
 import LogoBrandStep from "@/components/setup/LogoBrandStep";
@@ -12,7 +13,7 @@ import SetupSuccess from "@/components/setup/SetupSuccess";
 import PlanSelection from "@/components/setup/PlanSelection";
 
 const StoreSetup = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
 
   // Wizard state: 1=details, 2=brand, 3=plan, 4=success
@@ -279,9 +280,19 @@ const StoreSetup = () => {
 
       <div className="relative w-full max-w-lg">
         {/* Logo */}
-        <div className="mb-5 flex justify-center">
+        <div className="mb-5 flex items-center justify-between">
           <button onClick={() => navigate("/")}>
             <img src={storvoLogo} alt="Storvo" className="h-7" />
+          </button>
+          <button
+            onClick={async () => {
+              await signOut();
+              navigate("/auth");
+            }}
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Sign out
           </button>
         </div>
 
