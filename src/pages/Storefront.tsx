@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, MessageCircle, Share2, Store, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { ShoppingCart, MessageCircle, Share2, Store, X, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { toast } from "sonner";
 
 interface CartItem {
