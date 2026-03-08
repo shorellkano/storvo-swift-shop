@@ -186,11 +186,11 @@ const Storefront = () => {
                     <div className="mt-3 flex gap-2">
                       <button
                         className="flex-1 inline-flex items-center justify-center rounded-md text-xs font-medium h-9 px-3 text-white transition-all duration-150 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
-                        style={{ backgroundColor: addedIds.has(product.id) ? '#22c55e' : brandColor }}
+                        style={{ backgroundColor: addedIds[product.id] ? '#22c55e' : brandColor }}
                         disabled={outOfStock}
                         onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                       >
-                        {addedIds.has(product.id) ? (
+                        {addedIds[product.id] ? (
                           <><Check className="mr-1 h-3 w-3" /> Added</>
                         ) : (
                           "Add to Cart"
