@@ -47,7 +47,7 @@ const Storefront = () => {
     fetchStore();
   }, [slug]);
 
-  const addToCart = (product: any) => {
+  const addToCart = useCallback((product: any) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
@@ -59,8 +59,17 @@ const Storefront = () => {
       }
       return [...prev, { product, quantity: 1 }];
     });
+    // Show "Added ✓" feedback on the button
+    setAddedIds((prev) => new Set(prev).add(product.id));
+    setTimeout(() => {
+      setAddedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(product.id);
+        return next;
+      });
+    }, 1200);
     toast.success("Added to cart!");
-  };
+  }, []);
 
   const updateQuantity = (productId: string, delta: number) => {
     setCart((prev) =>
