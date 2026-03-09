@@ -354,6 +354,16 @@ const StoreSettings = () => {
                 </CardContent>
               </Card>
 
+              {/* Bank Account / Payouts */}
+              <BankDetailsCard
+                storeId={store.id}
+                storeName={store.name}
+                hasSubaccount={!!store.paystack_subaccount_code}
+                onSubaccountCreated={(code) =>
+                  setStore((prev: any) => ({ ...prev, paystack_subaccount_code: code }))
+                }
+              />
+
               {/* Save */}
               <div className="flex justify-end pb-8">
                 <Button variant="hero" size="lg" onClick={handleSave} disabled={saving}>
