@@ -6,6 +6,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import BillingSection from "@/components/dashboard/BillingSection";
+import BankDetailsCard from "@/components/dashboard/BankDetailsCard";
 import UpgradeModal from "@/components/dashboard/UpgradeModal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -352,6 +353,16 @@ const StoreSettings = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Bank Account / Payouts */}
+              <BankDetailsCard
+                storeId={store.id}
+                storeName={store.name}
+                hasSubaccount={!!store.paystack_subaccount_code}
+                onSubaccountCreated={(code) =>
+                  setStore((prev: any) => ({ ...prev, paystack_subaccount_code: code }))
+                }
+              />
 
               {/* Save */}
               <div className="flex justify-end pb-8">
