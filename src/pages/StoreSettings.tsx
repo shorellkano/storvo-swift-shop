@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/hooks/useSubscription";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import BillingSection from "@/components/dashboard/BillingSection";
 import BankDetailsCard from "@/components/dashboard/BankDetailsCard";
 import UpgradeModal from "@/components/dashboard/UpgradeModal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
