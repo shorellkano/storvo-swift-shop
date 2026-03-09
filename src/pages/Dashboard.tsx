@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, LogOut } from "lucide-react";
 
 const Dashboard = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
