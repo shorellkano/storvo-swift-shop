@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardOverview from "@/components/dashboard/DashboardOverview";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, LogOut } from "lucide-react";
 
 const Dashboard = () => {
   const { user, loading: authLoading } = useAuth();
