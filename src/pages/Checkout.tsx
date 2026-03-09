@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -143,7 +144,15 @@ const Checkout = () => {
   return (
     <div className="min-h-screen bg-background py-8 px-4">
       <div className="mx-auto max-w-2xl">
-        <h1 className="mb-6 font-display text-2xl font-bold text-foreground">Checkout</h1>
+        <div className="mb-6 flex items-center gap-3">
+          <button
+            onClick={() => navigate(`/store/${slug}`, { state: { restoredCart: cart } })}
+            className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h1 className="font-display text-2xl font-bold text-foreground">Checkout</h1>
+        </div>
 
         <div className="grid gap-6 md:grid-cols-5">
           <div className="md:col-span-3">

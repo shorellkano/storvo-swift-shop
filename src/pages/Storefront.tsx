@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageCircle, Share2, Store, X, ChevronLeft, ChevronRight, Check, ArrowLeft } from "lucide-react";
@@ -13,6 +13,7 @@ interface CartItem {
 const Storefront = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -53,6 +54,16 @@ const Storefront = () => {
 
     fetchStore();
   }, [slug]);
+
+  // Restore cart when navigating back from checkout
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.restoredCart) {
+      setCart(state.restoredCart);
+      // Clear the state so it doesn't persist on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const addToCart = (product: any) => {
     setCart((prev) => {
@@ -151,7 +162,7 @@ const Storefront = () => {
             <span className="font-display font-semibold text-foreground">{store.name}</span>
           </div>
           <button
-            onClick={() => setShowCart(!showCart)}
+            onClick={() => { setSelectedProduct(null); setShowCart(!showCart); }}
             className="relative rounded-xl bg-accent p-2 transition-colors hover:bg-accent/80"
           >
             <ShoppingCart className="h-5 w-5 text-foreground" />
@@ -351,7 +362,15 @@ const Storefront = () => {
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={() => setShowCart(false)} />
           <div className="relative w-full max-w-md bg-card p-6 shadow-xl overflow-y-auto">
-            <h2 className="font-display text-xl font-bold text-foreground mb-6">Your Cart</h2>
+            <div className="flex items-center gap-3 mb-6">
+              <button
+                onClick={() => setShowCart(false)}
+                className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <h2 className="font-display text-xl font-bold text-foreground">Your Cart</h2>
+            </div>
             {cart.length === 0 ? (
               <p className="text-muted-foreground text-center py-12">Your cart is empty</p>
             ) : (

@@ -138,11 +138,11 @@ const SetupSuccess = ({
         >
           <Plus className="mr-2 h-4 w-4" /> Add your first product
         </Button>
-        <div className="flex gap-2.5">
+        <div className="flex flex-col sm:flex-row gap-2.5">
           <Button
             variant="hero-outline"
             size="lg"
-            className="flex-1"
+            className="flex-1 text-sm"
             onClick={onViewStore}
           >
             <ExternalLink className="mr-2 h-4 w-4" /> View my store
@@ -150,7 +150,7 @@ const SetupSuccess = ({
           <Button
             variant="hero-outline"
             size="lg"
-            className="flex-1"
+            className="flex-1 text-sm"
             onClick={handleShare}
           >
             <Share2 className="mr-2 h-4 w-4" /> Share link
