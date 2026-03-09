@@ -151,7 +151,7 @@ const Storefront = () => {
             <span className="font-display font-semibold text-foreground">{store.name}</span>
           </div>
           <button
-            onClick={() => setShowCart(!showCart)}
+            onClick={() => { setSelectedProduct(null); setShowCart(!showCart); }}
             className="relative rounded-xl bg-accent p-2 transition-colors hover:bg-accent/80"
           >
             <ShoppingCart className="h-5 w-5 text-foreground" />
