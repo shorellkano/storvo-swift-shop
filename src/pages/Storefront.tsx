@@ -351,7 +351,15 @@ const Storefront = () => {
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={() => setShowCart(false)} />
           <div className="relative w-full max-w-md bg-card p-6 shadow-xl overflow-y-auto">
-            <h2 className="font-display text-xl font-bold text-foreground mb-6">Your Cart</h2>
+            <div className="flex items-center gap-3 mb-6">
+              <button
+                onClick={() => setShowCart(false)}
+                className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <h2 className="font-display text-xl font-bold text-foreground">Your Cart</h2>
+            </div>
             {cart.length === 0 ? (
               <p className="text-muted-foreground text-center py-12">Your cart is empty</p>
             ) : (
