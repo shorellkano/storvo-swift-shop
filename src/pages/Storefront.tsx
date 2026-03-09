@@ -340,12 +340,15 @@ const Storefront = () => {
                   <button
                     onClick={() => {
                       if (store.whatsapp_number) {
-                        window.open(`https://wa.me/${store.whatsapp_number}?text=Hi, I'm interested in ${selectedProduct.name}`, "_blank");
+                        window.open(`https://wa.me/${store.whatsapp_number}?text=Hi, I'm interested in ${selectedProduct.name} (${formatCurrency(Number(selectedProduct.price))})`, "_blank");
+                      } else {
+                        toast.error("Seller hasn't added a WhatsApp number yet");
                       }
                     }}
-                    className="rounded-xl bg-accent p-3 hover:bg-accent/80 transition-colors"
+                    className="rounded-xl p-3 transition-colors hover:opacity-80"
+                    style={{ backgroundColor: '#25D366', color: '#fff' }}
                   >
-                    <MessageCircle className="h-5 w-5 text-foreground" />
+                    <MessageCircle className="h-5 w-5" />
                   </button>
                   <button
                     onClick={() => shareProduct(selectedProduct)}
