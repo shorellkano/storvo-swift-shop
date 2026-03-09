@@ -5,9 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardOverview from "@/components/dashboard/DashboardOverview";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, LogOut } from "lucide-react";
 
 const Dashboard = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -52,9 +54,32 @@ const Dashboard = () => {
       <div className="min-h-screen flex w-full">
         <DashboardSidebar store={store} />
         <div className="flex-1 flex flex-col">
-          <header className="h-14 flex items-center border-b border-border/60 bg-card px-4">
-            <SidebarTrigger className="mr-4" />
-            <h2 className="font-display text-lg font-semibold text-foreground">Dashboard</h2>
+          <header className="h-14 flex items-center justify-between border-b border-border/60 bg-card px-4">
+            <div className="flex items-center">
+              <SidebarTrigger className="mr-4" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="mr-2"
+                onClick={() => navigate("/")}
+                title="Back to Home"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <h2 className="font-display text-lg font-semibold text-foreground">Dashboard</h2>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-destructive"
+              onClick={async () => {
+                await signOut();
+                navigate("/");
+              }}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </Button>
           </header>
           <main className="flex-1 p-6 bg-background">
             <DashboardOverview store={store} />
