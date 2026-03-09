@@ -55,7 +55,16 @@ const Storefront = () => {
     fetchStore();
   }, [slug]);
 
-  const addToCart = (product: any) => {
+  // Restore cart when navigating back from checkout
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.restoredCart) {
+      setCart(state.restoredCart);
+      // Clear the state so it doesn't persist on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
