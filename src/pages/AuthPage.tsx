@@ -56,7 +56,7 @@ const AuthPage = () => {
         if (error) throw error;
         navigate("/dashboard");
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -65,8 +65,20 @@ const AuthPage = () => {
           },
         });
         if (error) throw error;
-        toast.success("Account created! Check your email to confirm, or continue to set up your store.");
-        navigate("/setup");
+        
+        // Check if email confirmation is required
+        if (data.user && !data.session) {
+          // User created but no session = email confirmation required
+          toast.success(
+            "Account created! Please check your email inbox (and spam folder) for a confirmation link before signing in.",
+            { duration: 15000 }
+          );
+          setIsLogin(true);
+        } else {
+          // Session exists = auto-confirm is on, proceed
+          toast.success("Account created! Let's set up your store.");
+          navigate("/setup");
+        }
       }
     } catch (error: any) {
       toast.error(error.message);
