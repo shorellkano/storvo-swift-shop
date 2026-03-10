@@ -98,7 +98,7 @@ const Products = () => {
             </div>
 
             {/* Free plan banner */}
-            {!isPro && productCount >= 7 && (
+            {!isPro && productCount >= 8 && (
               <div className="mb-6">
                 <FreePlanBanner productCount={productCount} onUpgrade={() => setShowUpgrade(true)} />
               </div>

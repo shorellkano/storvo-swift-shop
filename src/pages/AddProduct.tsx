@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSubscription, FREE_IMAGE_LIMIT, PRO_IMAGE_LIMIT } from "@/hooks/useSubscription";
+import { useSubscription, FREE_IMAGE_LIMIT, PRO_IMAGE_LIMIT, FREE_PRODUCT_LIMIT } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,16 +15,20 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import PostUploadSuccess from "@/components/dashboard/PostUploadSuccess";
 import UpgradeModal from "@/components/dashboard/UpgradeModal";
+import LiveStorePreview from "@/components/dashboard/LiveStorePreview";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const AddProduct = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [createdProduct, setCreatedProduct] = useState<{ id: string; name: string } | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [existingProducts, setExistingProducts] = useState<any[]>([]);
 
   const { canAddProduct, productCount, isPro, refetch } = useSubscription(store?.id || null);
 
@@ -47,7 +51,18 @@ const AddProduct = () => {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle()
-      .then(({ data }) => setStore(data));
+      .then(async ({ data }) => {
+        setStore(data);
+        if (data) {
+          const { data: prods } = await supabase
+            .from("products")
+            .select("*, product_images(*)")
+            .eq("store_id", data.id)
+            .order("created_at", { ascending: false })
+            .limit(6);
+          setExistingProducts(prods || []);
+        }
+      });
   }, [user]);
 
   const maxImages = isPro ? PRO_IMAGE_LIMIT : FREE_IMAGE_LIMIT;
@@ -199,7 +214,7 @@ const AddProduct = () => {
                   Free plan limit reached
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  You've added {productCount} of 10 products on the Free plan. Upgrade to Pro to add unlimited products.
+                  You've added {productCount} of {FREE_PRODUCT_LIMIT} products on the Free plan. Upgrade to Pro to add unlimited products.
                 </p>
                 <div className="mt-6 space-y-3">
                   <Button variant="hero" size="lg" className="w-full" onClick={() => setShowUpgrade(true)}>
@@ -232,149 +247,168 @@ const AddProduct = () => {
               <ArrowLeft className="mr-2 h-4 w-4" /> Back to Products
             </Button>
 
-            <div className="mx-auto max-w-2xl rounded-2xl border border-border/60 bg-card p-6 sm:p-8 shadow-card">
-              {/* Product count indicator */}
-              {!isPro && (
-                <div className="mb-5 flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
-                  <span className="text-xs text-muted-foreground">
-                    {productCount + 1} of 10 products (Free plan)
-                  </span>
-                  <button
-                    onClick={() => setShowUpgrade(true)}
-                    className="text-xs font-medium text-primary hover:underline"
-                  >
-                    Upgrade
-                  </button>
-                </div>
-              )}
+            <div className={`${isMobile ? '' : 'grid grid-cols-5 gap-6'}`}>
+              {/* Product Form */}
+              <div className={isMobile ? '' : 'col-span-3'}>
+                <div className="rounded-2xl border border-border/60 bg-card p-6 sm:p-8 shadow-card">
+                  {/* Product count indicator */}
+                  {!isPro && (
+                    <div className="mb-5 flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
+                      <span className="text-xs text-muted-foreground">
+                        {productCount} of {FREE_PRODUCT_LIMIT} products used (Free plan)
+                      </span>
+                      <button
+                        onClick={() => setShowUpgrade(true)}
+                        className="text-xs font-medium text-primary hover:underline"
+                      >
+                        Upgrade
+                      </button>
+                    </div>
+                  )}
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <Label htmlFor="name">Product Name</Label>
-                  <Input
-                    id="name"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="e.g. Luxury Brazilian Wig"
-                    required
-                    maxLength={100}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="price">Price (₦)</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={form.price}
-                    onChange={(e) => setForm({ ...form, price: e.target.value })}
-                    placeholder="0.00"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    placeholder="Describe your product..."
-                    rows={4}
-                  />
-                </div>
-
-                <div>
-                  <Label>Product Type</Label>
-                  <Select
-                    value={form.productType}
-                    onValueChange={(v) => setForm({ ...form, productType: v as "physical" | "digital" })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="physical">Physical Product</SelectItem>
-                      <SelectItem value="digital">Digital Product</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {form.productType === "physical" && (
-                  <div className="space-y-4 rounded-xl bg-muted/50 p-4">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="trackInventory">Track Inventory</Label>
-                      <Switch
-                        id="trackInventory"
-                        checked={form.trackInventory}
-                        onCheckedChange={(v) => setForm({ ...form, trackInventory: v })}
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div>
+                      <Label htmlFor="name">Product Name</Label>
+                      <Input
+                        id="name"
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        placeholder="e.g. Luxury Brazilian Wig"
+                        required
+                        maxLength={100}
                       />
                     </div>
-                    {form.trackInventory && (
+
+                    <div>
+                      <Label htmlFor="price">Price (₦)</Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={form.price}
+                        onChange={(e) => setForm({ ...form, price: e.target.value })}
+                        placeholder="0.00"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea
+                        id="description"
+                        value={form.description}
+                        onChange={(e) => setForm({ ...form, description: e.target.value })}
+                        placeholder="Describe your product..."
+                        rows={4}
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Product Type</Label>
+                      <Select
+                        value={form.productType}
+                        onValueChange={(v) => setForm({ ...form, productType: v as "physical" | "digital" })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="physical">Physical Product</SelectItem>
+                          <SelectItem value="digital">Digital Product</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {form.productType === "physical" && (
+                      <div className="space-y-4 rounded-xl bg-muted/50 p-4">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="trackInventory">Track Inventory</Label>
+                          <Switch
+                            id="trackInventory"
+                            checked={form.trackInventory}
+                            onCheckedChange={(v) => setForm({ ...form, trackInventory: v })}
+                          />
+                        </div>
+                        {form.trackInventory && (
+                          <div>
+                            <Label htmlFor="stock">Stock Quantity</Label>
+                            <Input
+                              id="stock"
+                              type="number"
+                              min="0"
+                              value={form.stockQuantity}
+                              onChange={(e) => setForm({ ...form, stockQuantity: parseInt(e.target.value) || 0 })}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {form.productType === "digital" && (
                       <div>
-                        <Label htmlFor="stock">Stock Quantity</Label>
+                        <Label htmlFor="digitalUrl">Download URL (Google Drive / Dropbox link)</Label>
                         <Input
-                          id="stock"
-                          type="number"
-                          min="0"
-                          value={form.stockQuantity}
-                          onChange={(e) => setForm({ ...form, stockQuantity: parseInt(e.target.value) || 0 })}
+                          id="digitalUrl"
+                          value={form.digitalFileUrl}
+                          onChange={(e) => setForm({ ...form, digitalFileUrl: e.target.value })}
+                          placeholder="https://drive.google.com/..."
                         />
                       </div>
                     )}
-                  </div>
-                )}
 
-                {form.productType === "digital" && (
-                  <div>
-                    <Label htmlFor="digitalUrl">Download URL (Google Drive / Dropbox link)</Label>
-                    <Input
-                      id="digitalUrl"
-                      value={form.digitalFileUrl}
-                      onChange={(e) => setForm({ ...form, digitalFileUrl: e.target.value })}
-                      placeholder="https://drive.google.com/..."
-                    />
-                  </div>
-                )}
-
-                {/* Image Upload */}
-                <div>
-                  <Label>Product Images</Label>
-                  <div className="mt-2 grid grid-cols-3 sm:grid-cols-5 gap-3">
-                    {previews.map((preview, i) => (
-                      <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border">
-                        <img src={preview} alt="" className="h-full w-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => removeImage(i)}
-                          className="absolute top-1 right-1 rounded-full bg-card/80 p-1 backdrop-blur"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
+                    {/* Image Upload */}
+                    <div>
+                      <Label>Product Images</Label>
+                      <div className="mt-2 grid grid-cols-3 sm:grid-cols-5 gap-3">
+                        {previews.map((preview, i) => (
+                          <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border">
+                            <img src={preview} alt="" className="h-full w-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(i)}
+                              className="absolute top-1 right-1 rounded-full bg-card/80 p-1 backdrop-blur"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                        {previews.length < maxImages && (
+                          <label className="flex aspect-square cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border hover:border-primary/40 transition-colors">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              onChange={handleImageChange}
+                              className="hidden"
+                            />
+                            <Upload className="h-6 w-6 text-muted-foreground" />
+                          </label>
+                        )}
                       </div>
-                    ))}
-                    {previews.length < maxImages && (
-                      <label className="flex aspect-square cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border hover:border-primary/40 transition-colors">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={handleImageChange}
-                          className="hidden"
-                        />
-                        <Upload className="h-6 w-6 text-muted-foreground" />
-                      </label>
-                    )}
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">Up to {maxImages} images, 5MB each</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Up to {maxImages} images, 5MB each</p>
+                    </div>
+
+                    <Button variant="hero" size="lg" className="w-full" disabled={loading}>
+                      {loading ? "Adding product..." : "Add Product"}
+                    </Button>
+                  </form>
                 </div>
+              </div>
 
-                <Button variant="hero" size="lg" className="w-full" disabled={loading}>
-                  {loading ? "Adding product..." : "Add Product"}
-                </Button>
-              </form>
+              {/* Live Store Preview - desktop only */}
+              {!isMobile && (
+                <div className="col-span-2 sticky top-20 self-start">
+                  <LiveStorePreview
+                    store={store}
+                    productName={form.name}
+                    productPrice={form.price}
+                    productDescription={form.description}
+                    productImages={previews}
+                    existingProducts={existingProducts}
+                  />
+                </div>
+              )}
             </div>
           </main>
         </div>

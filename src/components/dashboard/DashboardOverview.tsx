@@ -117,7 +117,7 @@ const DashboardOverview = ({ store }: DashboardOverviewProps) => {
       </div>
 
       {/* Free plan banner when approaching limit */}
-      {!isPro && productCount >= 7 && (
+      {!isPro && productCount >= 8 && (
         <FreePlanBanner productCount={productCount} onUpgrade={() => setShowUpgrade(true)} />
       )}
 

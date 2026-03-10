@@ -9,6 +9,7 @@ interface FreePlanBannerProps {
 }
 
 const FreePlanBanner = ({ productCount, onUpgrade }: FreePlanBannerProps) => {
+  const isApproaching = productCount >= 8 && productCount < FREE_PRODUCT_LIMIT;
   const percentage = Math.min((productCount / FREE_PRODUCT_LIMIT) * 100, 100);
   const isAtLimit = productCount >= FREE_PRODUCT_LIMIT;
 
