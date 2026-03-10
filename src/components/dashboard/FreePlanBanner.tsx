@@ -30,6 +30,10 @@ const FreePlanBanner = ({ productCount, onUpgrade }: FreePlanBannerProps) => {
             <p className="text-sm text-muted-foreground">
               You've reached your limit. Upgrade to add more products.
             </p>
+          ) : isApproaching ? (
+            <p className="text-sm text-muted-foreground">
+              You're doing great! 🎉 Free plan allows {FREE_PRODUCT_LIMIT} products. Upgrade to Pro for unlimited products.
+            </p>
           ) : (
             <p className="text-sm text-muted-foreground">
               {FREE_PRODUCT_LIMIT - productCount} product{FREE_PRODUCT_LIMIT - productCount !== 1 ? "s" : ""} remaining on Free plan.
