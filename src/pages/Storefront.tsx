@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageCircle, Share2, Store, X, ChevronLeft, ChevronRight, Check, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import ShareSheet from "@/components/dashboard/ShareSheet";
 
 interface CartItem {
   product: any;
@@ -23,6 +24,7 @@ const Storefront = () => {
   const [loading, setLoading] = useState(true);
   const [addedIds, setAddedIds] = useState<Record<string, boolean>>({});
   const [isOwner, setIsOwner] = useState(false);
+  const [shareTarget, setShareTarget] = useState<{ url: string; title: string; text?: string } | null>(null);
 
   useEffect(() => {
     const fetchStore = async () => {
@@ -36,11 +38,26 @@ const Storefront = () => {
       if (!storeData) { setLoading(false); return; }
       setStore(storeData);
 
-      // Check if current user is the store owner
+      // Set OG meta tags dynamically
+      document.title = `${storeData.name} — Shop on Storvo`;
+      const setMeta = (property: string, content: string) => {
+        let el = document.querySelector(`meta[property="${property}"]`) || document.querySelector(`meta[name="${property}"]`);
+        if (!el) {
+          el = document.createElement("meta");
+          if (property.startsWith("og:")) el.setAttribute("property", property);
+          else el.setAttribute("name", property);
+          document.head.appendChild(el);
+        }
+        el.setAttribute("content", content);
+      };
+      setMeta("og:title", `${storeData.name} — Shop on Storvo`);
+      setMeta("og:description", storeData.description || `Shop ${storeData.name} on Storvo`);
+      if (storeData.logo_url) setMeta("og:image", storeData.logo_url);
+      setMeta("og:url", window.location.href);
+
       const { data: { user } } = await supabase.auth.getUser();
-      if (user && user.id === storeData.user_id) {
-        setIsOwner(true);
-      }
+      if (user && user.id === storeData.user_id) setIsOwner(true);
+
       const { data: prods } = await supabase
         .from("products")
         .select("*, product_images(*)")
@@ -60,7 +77,6 @@ const Storefront = () => {
     const state = location.state as any;
     if (state?.restoredCart) {
       setCart(state.restoredCart);
-      // Clear the state so it doesn't persist on refresh
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
@@ -77,7 +93,6 @@ const Storefront = () => {
       }
       return [...prev, { product, quantity: 1 }];
     });
-    // Show "Added ✓" feedback on the button
     const id = product.id;
     setAddedIds((prev) => ({ ...prev, [id]: true }));
     setTimeout(() => {
@@ -110,9 +125,17 @@ const Storefront = () => {
     new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN" }).format(amount);
 
   const shareProduct = (product: any) => {
-    const url = `${window.location.origin}/store/${slug}/${product.slug}`;
-    navigator.clipboard.writeText(url);
-    toast.success("Link copied!");
+    const url = `${window.location.origin}/store/${slug}`;
+    const text = `Check out ${product.name} — ${formatCurrency(Number(product.price))}`;
+    setShareTarget({ url, title: product.name, text });
+  };
+
+  const openWhatsApp = (product: any) => {
+    if (store.whatsapp_number) {
+      window.open(`https://wa.me/${store.whatsapp_number}?text=Hi, I'm interested in ${product.name} (${formatCurrency(Number(product.price))})`, "_blank");
+    } else {
+      toast.error("Seller hasn't added a WhatsApp number yet");
+    }
   };
 
   if (loading) {
@@ -155,7 +178,7 @@ const Storefront = () => {
             {store.logo_url ? (
               <img src={store.logo_url} alt={store.name} className="h-8 w-8 rounded-lg object-cover" />
             ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-primary-foreground" style={{ background: brandColor }}>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-white" style={{ background: brandColor }}>
                 {store.name.charAt(0)}
               </div>
             )}
@@ -167,7 +190,7 @@ const Storefront = () => {
           >
             <ShoppingCart className="h-5 w-5 text-foreground" />
             {cart.length > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-primary-foreground" style={{ background: brandColor }}>
+              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-white" style={{ background: brandColor }}>
                 {cart.reduce((s, i) => s + i.quantity, 0)}
               </span>
             )}
@@ -210,38 +233,36 @@ const Storefront = () => {
                   <div className="p-3">
                     <h3 className="font-display text-sm font-semibold text-foreground truncate">{product.name}</h3>
                     <p className="text-sm font-bold mt-1" style={{ color: brandColor }}>{formatCurrency(Number(product.price))}</p>
-                    <div className="mt-3 flex gap-2">
+
+                    {/* Full-width Add to Cart on mobile */}
+                    <button
+                      className="mt-3 w-full inline-flex items-center justify-center rounded-lg text-xs font-semibold h-10 px-3 text-white transition-all duration-150 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                      style={{ backgroundColor: addedIds[product.id] ? '#22c55e' : brandColor }}
+                      disabled={outOfStock}
+                      onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                    >
+                      {addedIds[product.id] ? (
+                        <><Check className="mr-1 h-3.5 w-3.5" /> Added</>
+                      ) : (
+                        <><ShoppingCart className="mr-1.5 h-3.5 w-3.5" /> Add to Cart</>
+                      )}
+                    </button>
+
+                    <div className="mt-2 flex gap-2">
                       <button
-                        className="flex-1 inline-flex items-center justify-center rounded-md text-xs font-medium h-9 px-3 text-white transition-all duration-150 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
-                        style={{ backgroundColor: addedIds[product.id] ? '#22c55e' : brandColor }}
-                        disabled={outOfStock}
-                        onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                      >
-                        {addedIds[product.id] ? (
-                          <><Check className="mr-1 h-3 w-3" /> Added</>
-                        ) : (
-                          "Add to Cart"
-                        )}
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (store.whatsapp_number) {
-                            window.open(`https://wa.me/${store.whatsapp_number}?text=Hi, I'm interested in ${product.name} (${formatCurrency(Number(product.price))})`, "_blank");
-                          } else {
-                            toast.error("Seller hasn't added a WhatsApp number yet");
-                          }
-                        }}
-                        className="rounded-lg p-2 transition-colors"
+                        onClick={(e) => { e.stopPropagation(); openWhatsApp(product); }}
+                        className="flex-1 inline-flex items-center justify-center rounded-lg p-2 transition-colors text-xs font-medium gap-1"
                         style={{ backgroundColor: '#25D366', color: '#fff' }}
                       >
                         <MessageCircle className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Chat</span>
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); shareProduct(product); }}
-                        className="rounded-lg bg-accent p-2 hover:bg-accent/80 transition-colors"
+                        className="flex-1 inline-flex items-center justify-center rounded-lg bg-accent p-2 hover:bg-accent/80 transition-colors text-xs font-medium gap-1"
                       >
                         <Share2 className="h-3.5 w-3.5 text-foreground" />
+                        <span className="hidden sm:inline text-foreground">Share</span>
                       </button>
                     </div>
                   </div>
@@ -260,7 +281,6 @@ const Storefront = () => {
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
             <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setSelectedProduct(null)} />
             <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-card shadow-xl">
-              {/* Close button */}
               <button
                 onClick={() => setSelectedProduct(null)}
                 className="absolute top-3 right-3 z-10 rounded-full bg-card/80 backdrop-blur-sm p-2 shadow-md hover:bg-accent transition-colors"
@@ -271,11 +291,7 @@ const Storefront = () => {
               {/* Image gallery */}
               <div className="relative aspect-square bg-muted">
                 {images.length > 0 ? (
-                  <img
-                    src={images[activeImageIndex]?.image_url}
-                    alt={selectedProduct.name}
-                    className="h-full w-full object-cover"
-                  />
+                  <img src={images[activeImageIndex]?.image_url} alt={selectedProduct.name} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full items-center justify-center">
                     <Store className="h-12 w-12 text-muted-foreground" />
@@ -300,7 +316,7 @@ const Storefront = () => {
                         <button
                           key={i}
                           onClick={() => setActiveImageIndex(i)}
-                          className={`h-2 w-2 rounded-full transition-all ${i === activeImageIndex ? 'bg-primary-foreground scale-125' : 'bg-primary-foreground/50'}`}
+                          className={`h-2 w-2 rounded-full transition-all ${i === activeImageIndex ? 'bg-white scale-125' : 'bg-white/50'}`}
                         />
                       ))}
                     </div>
@@ -318,7 +334,7 @@ const Storefront = () => {
                 </div>
 
                 {selectedProduct.description && (
-                  <p className="text-sm text-muted-foreground leading-relaxed">{selectedProduct.description}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{selectedProduct.description}</p>
                 )}
 
                 {selectedProduct.track_inventory && (
@@ -327,34 +343,48 @@ const Storefront = () => {
                   </p>
                 )}
 
-                <div className="flex gap-3 pt-2">
+                {/* Primary actions */}
+                <div className="space-y-3 pt-2">
                   <Button
                     size="lg"
-                    className="flex-1 font-semibold transition-all duration-150 active:scale-95"
+                    className="w-full font-semibold transition-all duration-150 active:scale-95 text-white"
                     style={{ background: brandColor }}
                     disabled={outOfStock}
                     onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}
                   >
-                    Add to Cart
+                    <ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart
                   </Button>
-                  <button
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full font-semibold transition-all duration-150 active:scale-95"
+                    style={{ borderColor: brandColor, color: brandColor }}
+                    disabled={outOfStock}
                     onClick={() => {
-                      if (store.whatsapp_number) {
-                        window.open(`https://wa.me/${store.whatsapp_number}?text=Hi, I'm interested in ${selectedProduct.name} (${formatCurrency(Number(selectedProduct.price))})`, "_blank");
-                      } else {
-                        toast.error("Seller hasn't added a WhatsApp number yet");
-                      }
+                      addToCart(selectedProduct);
+                      setSelectedProduct(null);
+                      setShowCart(false);
+                      navigate(`/store/${slug}/checkout`, { state: { cart: [...cart, { product: selectedProduct, quantity: 1 }], store } });
                     }}
-                    className="rounded-xl p-3 transition-colors hover:opacity-80"
-                    style={{ backgroundColor: '#25D366', color: '#fff' }}
                   >
-                    <MessageCircle className="h-5 w-5" />
+                    Buy Now
+                  </Button>
+                </div>
+
+                {/* Secondary actions */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => openWhatsApp(selectedProduct)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl p-3 text-sm font-medium transition-colors hover:opacity-80 text-white"
+                    style={{ backgroundColor: '#25D366' }}
+                  >
+                    <MessageCircle className="h-4 w-4" /> Chat
                   </button>
                   <button
                     onClick={() => shareProduct(selectedProduct)}
-                    className="rounded-xl bg-accent p-3 hover:bg-accent/80 transition-colors"
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-accent p-3 text-sm font-medium hover:bg-accent/80 transition-colors"
                   >
-                    <Share2 className="h-5 w-5 text-foreground" />
+                    <Share2 className="h-4 w-4 text-foreground" /> <span className="text-foreground">Share</span>
                   </button>
                 </div>
               </div>
@@ -420,7 +450,7 @@ const Storefront = () => {
                 </div>
 
                 <Link to={`/store/${slug}/checkout`} state={{ cart, store }}>
-                  <Button size="lg" className="mt-6 w-full transition-all duration-150 active:scale-95" style={{ background: brandColor }}>
+                  <Button size="lg" className="mt-6 w-full transition-all duration-150 active:scale-95 text-white" style={{ background: brandColor }}>
                     Checkout · {formatCurrency(orderTotal)}
                   </Button>
                 </Link>
@@ -430,9 +460,18 @@ const Storefront = () => {
         </div>
       )}
 
+      {/* Share Sheet */}
+      <ShareSheet
+        open={!!shareTarget}
+        onClose={() => setShareTarget(null)}
+        url={shareTarget?.url || ""}
+        title={shareTarget?.title || ""}
+        text={shareTarget?.text}
+      />
+
       {/* Footer */}
       <footer className="border-t border-border/60 py-6 text-center text-xs text-muted-foreground">
-        Powered by <a href="/" className="font-semibold text-storvo-indigo hover:underline">Storvo</a>
+        Powered by <a href="/" className="font-semibold text-primary hover:underline">Storvo</a>
       </footer>
     </div>
   );
