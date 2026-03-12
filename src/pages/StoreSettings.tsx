@@ -355,6 +355,14 @@ const StoreSettings = () => {
                 </CardContent>
               </Card>
 
+              {/* Custom Domain (Pro only) */}
+              <CustomDomainCard
+                storeId={store.id}
+                storeSlug={store.slug}
+                isPro={subscription?.plan === "pro" && subscription?.is_active === true}
+                onUpgrade={() => setShowUpgrade(true)}
+              />
+
               {/* Bank Account / Payouts */}
               <BankDetailsCard
                 storeId={store.id}
