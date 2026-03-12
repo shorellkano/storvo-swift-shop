@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import BillingSection from "@/components/dashboard/BillingSection";
 import BankDetailsCard from "@/components/dashboard/BankDetailsCard";
+import CustomDomainCard from "@/components/dashboard/CustomDomainCard";
 import UpgradeModal from "@/components/dashboard/UpgradeModal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
