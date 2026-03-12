@@ -363,7 +363,7 @@ const AddProduct = () => {
                     productName={form.name}
                     productPrice={form.price}
                     productDescription={form.description}
-                    productImages={previews}
+                    productImages={uploadImages.map((img) => img.src)}
                     existingProducts={existingProducts}
                   />
                 </div>
