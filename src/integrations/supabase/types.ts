@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      custom_domains: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+          status: string
+          store_id: string
+          updated_at: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+          status?: string
+          store_id: string
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+          status?: string
+          store_id?: string
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_domains_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
