@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ArrowLeft, Upload, X, Crown } from "lucide-react";
+import { ArrowLeft, Crown } from "lucide-react";
+import ProductImageUploader, { type ImageItem } from "@/components/product/ProductImageUploader";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import PostUploadSuccess from "@/components/dashboard/PostUploadSuccess";
@@ -24,8 +25,7 @@ const AddProduct = () => {
   const isMobile = useIsMobile();
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [images, setImages] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
+  const [uploadImages, setUploadImages] = useState<ImageItem[]>([]);
   const [createdProduct, setCreatedProduct] = useState<{ id: string; name: string } | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [existingProducts, setExistingProducts] = useState<any[]>([]);
@@ -67,26 +67,6 @@ const AddProduct = () => {
 
   const maxImages = isPro ? PRO_IMAGE_LIMIT : FREE_IMAGE_LIMIT;
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const allowed = files.slice(0, maxImages - images.length);
-    if (allowed.length < files.length) {
-      toast.error(`Maximum ${maxImages} images per product`);
-    }
-    if (allowed.length === 0) return;
-    setImages((prev) => [...prev, ...allowed]);
-    allowed.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (e) => setPreviews((prev) => [...prev, e.target?.result as string]);
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const removeImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-    setPreviews((prev) => prev.filter((_, i) => i !== index));
-  };
-
   const generateSlug = (name: string) =>
     name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
@@ -100,8 +80,7 @@ const AddProduct = () => {
       stockQuantity: 0,
       digitalFileUrl: "",
     });
-    setImages([]);
-    setPreviews([]);
+    setUploadImages([]);
     setCreatedProduct(null);
     refetch();
   };
@@ -138,7 +117,9 @@ const AddProduct = () => {
 
       if (error) throw error;
 
-      await Promise.all(images.map(async (file, i) => {
+      const filesToUpload = uploadImages.filter((img) => img.file);
+      await Promise.all(filesToUpload.map(async (img, i) => {
+        const file = img.file!;
         const fileExt = file.name.split(".").pop();
         const filePath = `${store.id}/${product.id}/${i}.${fileExt}`;
 
@@ -152,10 +133,12 @@ const AddProduct = () => {
           .from("product-images")
           .getPublicUrl(filePath);
 
+        // Use the index from the full uploadImages array for display_order
+        const displayOrder = uploadImages.indexOf(img);
         await supabase.from("product_images").insert({
           product_id: product.id,
           image_url: publicUrl,
-          display_order: i,
+          display_order: displayOrder,
         });
       }));
 
@@ -357,37 +340,13 @@ const AddProduct = () => {
                       </div>
                     )}
 
-                    {/* Image Upload */}
-                    <div>
-                      <Label>Product Images</Label>
-                      <div className="mt-2 grid grid-cols-3 sm:grid-cols-5 gap-3">
-                        {previews.map((preview, i) => (
-                          <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border">
-                            <img src={preview} alt="" className="h-full w-full object-cover" />
-                            <button
-                              type="button"
-                              onClick={() => removeImage(i)}
-                              className="absolute top-1 right-1 rounded-full bg-card/80 p-1 backdrop-blur"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ))}
-                        {previews.length < maxImages && (
-                          <label className="flex aspect-square cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border hover:border-primary/40 transition-colors">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              multiple
-                              onChange={handleImageChange}
-                              className="hidden"
-                            />
-                            <Upload className="h-6 w-6 text-muted-foreground" />
-                          </label>
-                        )}
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground">Up to {maxImages} images, 5MB each</p>
-                    </div>
+                    {/* Image Upload with drag-to-reorder */}
+                    <ProductImageUploader
+                      maxImages={maxImages}
+                      isPro={isPro}
+                      images={uploadImages}
+                      onImagesChange={setUploadImages}
+                    />
 
                     <Button variant="hero" size="lg" className="w-full" disabled={loading}>
                       {loading ? "Adding product..." : "Add Product"}
@@ -404,7 +363,7 @@ const AddProduct = () => {
                     productName={form.name}
                     productPrice={form.price}
                     productDescription={form.description}
-                    productImages={previews}
+                    productImages={uploadImages.map((img) => img.src)}
                     existingProducts={existingProducts}
                   />
                 </div>
