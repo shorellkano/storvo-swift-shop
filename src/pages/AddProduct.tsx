@@ -80,8 +80,7 @@ const AddProduct = () => {
       stockQuantity: 0,
       digitalFileUrl: "",
     });
-    setImages([]);
-    setPreviews([]);
+    setUploadImages([]);
     setCreatedProduct(null);
     refetch();
   };
