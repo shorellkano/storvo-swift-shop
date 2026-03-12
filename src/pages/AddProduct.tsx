@@ -25,8 +25,7 @@ const AddProduct = () => {
   const isMobile = useIsMobile();
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [images, setImages] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
+  const [uploadImages, setUploadImages] = useState<ImageItem[]>([]);
   const [createdProduct, setCreatedProduct] = useState<{ id: string; name: string } | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [existingProducts, setExistingProducts] = useState<any[]>([]);
