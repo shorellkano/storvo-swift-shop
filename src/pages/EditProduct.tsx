@@ -9,11 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Upload, X, Loader2 } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { useSubscription, FREE_IMAGE_LIMIT, PRO_IMAGE_LIMIT } from "@/hooks/useSubscription";
-import ProductImageUploader, { type ImageItem } from "@/components/product/ProductImageUploader";
 
 const EditProduct = () => {
   const { user } = useAuth();
@@ -22,8 +21,10 @@ const EditProduct = () => {
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploadImages, setUploadImages] = useState<ImageItem[]>([]);
-  const [originalImageIds, setOriginalImageIds] = useState<string[]>([]);
+  const [existingImages, setExistingImages] = useState<any[]>([]);
+  const [newImages, setNewImages] = useState<File[]>([]);
+  const [newPreviews, setNewPreviews] = useState<string[]>([]);
+  const [removedImageIds, setRemovedImageIds] = useState<string[]>([]);
 
   const [form, setForm] = useState({
     name: "",
@@ -71,14 +72,9 @@ const EditProduct = () => {
         isActive: product.is_active,
       });
 
-      const sorted = (product.product_images || []).sort((a: any, b: any) => a.display_order - b.display_order);
-      const items: ImageItem[] = sorted.map((img: any) => ({
-        id: img.id,
-        src: img.image_url,
-        isExisting: true,
-      }));
-      setUploadImages(items);
-      setOriginalImageIds(sorted.map((img: any) => img.id));
+      setExistingImages(
+        (product.product_images || []).sort((a: any, b: any) => a.display_order - b.display_order)
+      );
       setLoading(false);
     };
 
@@ -87,6 +83,31 @@ const EditProduct = () => {
 
   const { isPro } = useSubscription(store?.id || null);
   const maxImages = isPro ? PRO_IMAGE_LIMIT : FREE_IMAGE_LIMIT;
+
+  const handleNewImages = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const currentTotal = existingImages.length - removedImageIds.length + newImages.length;
+    const allowed = files.slice(0, maxImages - currentTotal);
+    if (allowed.length < files.length) {
+      toast.error(`Maximum ${maxImages} images per product`);
+    }
+    if (allowed.length === 0) return;
+    setNewImages((prev) => [...prev, ...allowed]);
+    allowed.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (e) => setNewPreviews((prev) => [...prev, e.target?.result as string]);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeExistingImage = (imageId: string) => {
+    setRemovedImageIds((prev) => [...prev, imageId]);
+  };
+
+  const removeNewImage = (index: number) => {
+    setNewImages((prev) => prev.filter((_, i) => i !== index));
+    setNewPreviews((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const generateSlug = (name: string) =>
     name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -114,36 +135,21 @@ const EditProduct = () => {
 
       if (error) throw error;
 
-      // Determine removed images
-      const currentExistingIds = uploadImages.filter((img) => img.isExisting).map((img) => img.id);
-      const removedIds = originalImageIds.filter((oid) => !currentExistingIds.includes(oid));
-
-      // Delete removed images
-      for (const imgId of removedIds) {
-        // Find original image URL from the original fetch
-        const { data: imgRow } = await supabase.from("product_images").select("image_url").eq("id", imgId).single();
-        if (imgRow) {
-          const path = imgRow.image_url.split("/product-images/")[1];
+      // Remove deleted images
+      for (const imgId of removedImageIds) {
+        const img = existingImages.find((i) => i.id === imgId);
+        if (img) {
+          const path = img.image_url.split("/product-images/")[1];
           if (path) await supabase.storage.from("product-images").remove([path]);
           await supabase.from("product_images").delete().eq("id", imgId);
         }
       }
 
-      // Update display_order for remaining existing images
-      for (let i = 0; i < uploadImages.length; i++) {
-        const img = uploadImages[i];
-        if (img.isExisting) {
-          await supabase.from("product_images").update({ display_order: i }).eq("id", img.id);
-        }
-      }
-
-      // Upload new images
-      const newImages = uploadImages.filter((img) => !img.isExisting && img.file);
-      await Promise.all(newImages.map(async (img) => {
-        const file = img.file!;
-        const displayOrder = uploadImages.indexOf(img);
+      // Upload new images in parallel
+      const remainingCount = existingImages.length - removedImageIds.length;
+      await Promise.all(newImages.map(async (file, i) => {
         const fileExt = file.name.split(".").pop();
-        const filePath = `${store.id}/${id}/${Date.now()}_${displayOrder}.${fileExt}`;
+        const filePath = `${store.id}/${id}/${Date.now()}_${i}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("product-images")
@@ -158,7 +164,7 @@ const EditProduct = () => {
         await supabase.from("product_images").insert({
           product_id: id,
           image_url: publicUrl,
-          display_order: displayOrder,
+          display_order: remainingCount + i,
         });
       }));
 
@@ -178,6 +184,9 @@ const EditProduct = () => {
       </div>
     );
   }
+
+  const visibleExisting = existingImages.filter((img) => !removedImageIds.includes(img.id));
+  const totalImages = visibleExisting.length + newPreviews.length;
 
   return (
     <SidebarProvider>
@@ -206,23 +215,48 @@ const EditProduct = () => {
 
                 <div>
                   <Label htmlFor="name">Product Name</Label>
-                  <Input id="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required maxLength={100} />
+                  <Input
+                    id="name"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    required
+                    maxLength={100}
+                  />
                 </div>
 
                 <div>
                   <Label htmlFor="price">Price (₦)</Label>
-                  <Input id="price" type="number" min="0" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required />
+                  <Input
+                    id="price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.price}
+                    onChange={(e) => setForm({ ...form, price: e.target.value })}
+                    required
+                  />
                 </div>
 
                 <div>
                   <Label htmlFor="description">Description</Label>
-                  <Textarea id="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4} placeholder="Describe your product..." />
+                  <Textarea
+                    id="description"
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    rows={4}
+                    placeholder="Describe your product..."
+                  />
                 </div>
 
                 <div>
                   <Label>Product Type</Label>
-                  <Select value={form.productType} onValueChange={(v) => setForm({ ...form, productType: v as "physical" | "digital" })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select
+                    value={form.productType}
+                    onValueChange={(v) => setForm({ ...form, productType: v as "physical" | "digital" })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="physical">Physical Product</SelectItem>
                       <SelectItem value="digital">Digital Product</SelectItem>
@@ -234,12 +268,22 @@ const EditProduct = () => {
                   <div className="space-y-4 rounded-xl bg-muted/50 p-4">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="trackInventory">Track Inventory</Label>
-                      <Switch id="trackInventory" checked={form.trackInventory} onCheckedChange={(v) => setForm({ ...form, trackInventory: v })} />
+                      <Switch
+                        id="trackInventory"
+                        checked={form.trackInventory}
+                        onCheckedChange={(v) => setForm({ ...form, trackInventory: v })}
+                      />
                     </div>
                     {form.trackInventory && (
                       <div>
                         <Label htmlFor="stock">Stock Quantity</Label>
-                        <Input id="stock" type="number" min="0" value={form.stockQuantity} onChange={(e) => setForm({ ...form, stockQuantity: parseInt(e.target.value) || 0 })} />
+                        <Input
+                          id="stock"
+                          type="number"
+                          min="0"
+                          value={form.stockQuantity}
+                          onChange={(e) => setForm({ ...form, stockQuantity: parseInt(e.target.value) || 0 })}
+                        />
                       </div>
                     )}
                   </div>
@@ -248,17 +292,57 @@ const EditProduct = () => {
                 {form.productType === "digital" && (
                   <div>
                     <Label htmlFor="digitalUrl">Download URL</Label>
-                    <Input id="digitalUrl" value={form.digitalFileUrl} onChange={(e) => setForm({ ...form, digitalFileUrl: e.target.value })} placeholder="https://drive.google.com/..." />
+                    <Input
+                      id="digitalUrl"
+                      value={form.digitalFileUrl}
+                      onChange={(e) => setForm({ ...form, digitalFileUrl: e.target.value })}
+                      placeholder="https://drive.google.com/..."
+                    />
                   </div>
                 )}
 
-                {/* Image Upload with drag-to-reorder */}
-                <ProductImageUploader
-                  maxImages={maxImages}
-                  isPro={isPro}
-                  images={uploadImages}
-                  onImagesChange={setUploadImages}
-                />
+                {/* Images */}
+                <div>
+                  <Label>Product Images</Label>
+                  <div className="mt-2 grid grid-cols-3 sm:grid-cols-5 gap-3">
+                    {visibleExisting.map((img) => (
+                      <div key={img.id} className="relative aspect-square rounded-xl overflow-hidden border border-border">
+                        <img src={img.image_url} alt="" className="h-full w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeExistingImage(img.id)}
+                          className="absolute top-1 right-1 rounded-full bg-card/80 p-1 backdrop-blur"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {newPreviews.map((preview, i) => (
+                      <div key={`new-${i}`} className="relative aspect-square rounded-xl overflow-hidden border border-border border-dashed">
+                        <img src={preview} alt="" className="h-full w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeNewImage(i)}
+                          className="absolute top-1 right-1 rounded-full bg-card/80 p-1 backdrop-blur"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {totalImages < maxImages && (
+                      <label className="flex aspect-square cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border hover:border-primary/40 transition-colors">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleNewImages}
+                          className="hidden"
+                        />
+                        <Upload className="h-6 w-6 text-muted-foreground" />
+                      </label>
+                    )}
+                  </div>
+                </div>
 
                 <Button variant="hero" size="lg" className="w-full" disabled={saving}>
                   {saving ? "Saving..." : "Save Changes"}

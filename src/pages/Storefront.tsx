@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, MessageCircle, Share2, Store, X, Check, ArrowLeft } from "lucide-react";
-import ProductImageCarousel from "@/components/product/ProductImageCarousel";
+import { ShoppingCart, MessageCircle, Share2, Store, X, ChevronLeft, ChevronRight, Check, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import ShareSheet from "@/components/dashboard/ShareSheet";
 
@@ -289,12 +288,41 @@ const Storefront = () => {
                 <X className="h-5 w-5 text-foreground" />
               </button>
 
-              {/* Image carousel with swipe, zoom, thumbnails */}
-              <ProductImageCarousel
-                images={images.map((img: any) => ({ id: img.id, image_url: img.image_url }))}
-                productName={selectedProduct.name}
-                brandColor={brandColor}
-              />
+              {/* Image gallery */}
+              <div className="relative aspect-square bg-muted">
+                {images.length > 0 ? (
+                  <img src={images[activeImageIndex]?.image_url} alt={selectedProduct.name} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center">
+                    <Store className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                )}
+                {images.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setActiveImageIndex((prev) => (prev - 1 + images.length) % images.length)}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-card/80 backdrop-blur-sm p-1.5 shadow-md hover:bg-accent transition-colors"
+                    >
+                      <ChevronLeft className="h-5 w-5 text-foreground" />
+                    </button>
+                    <button
+                      onClick={() => setActiveImageIndex((prev) => (prev + 1) % images.length)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-card/80 backdrop-blur-sm p-1.5 shadow-md hover:bg-accent transition-colors"
+                    >
+                      <ChevronRight className="h-5 w-5 text-foreground" />
+                    </button>
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                      {images.map((_: any, i: number) => (
+                        <button
+                          key={i}
+                          onClick={() => setActiveImageIndex(i)}
+                          className={`h-2 w-2 rounded-full transition-all ${i === activeImageIndex ? 'bg-white scale-125' : 'bg-white/50'}`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
 
               {/* Details */}
               <div className="p-5 space-y-4">
