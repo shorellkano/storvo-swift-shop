@@ -117,7 +117,9 @@ const AddProduct = () => {
 
       if (error) throw error;
 
-      await Promise.all(images.map(async (file, i) => {
+      const filesToUpload = uploadImages.filter((img) => img.file);
+      await Promise.all(filesToUpload.map(async (img, i) => {
+        const file = img.file!;
         const fileExt = file.name.split(".").pop();
         const filePath = `${store.id}/${product.id}/${i}.${fileExt}`;
 
@@ -131,10 +133,12 @@ const AddProduct = () => {
           .from("product-images")
           .getPublicUrl(filePath);
 
+        // Use the index from the full uploadImages array for display_order
+        const displayOrder = uploadImages.indexOf(img);
         await supabase.from("product_images").insert({
           product_id: product.id,
           image_url: publicUrl,
-          display_order: i,
+          display_order: displayOrder,
         });
       }));
 
