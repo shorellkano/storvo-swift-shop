@@ -71,9 +71,14 @@ const EditProduct = () => {
         isActive: product.is_active,
       });
 
-      setExistingImages(
-        (product.product_images || []).sort((a: any, b: any) => a.display_order - b.display_order)
-      );
+      const sorted = (product.product_images || []).sort((a: any, b: any) => a.display_order - b.display_order);
+      setAllImages(sorted.map((img: any) => ({
+        id: img.id,
+        preview: img.image_url,
+        isExisting: true,
+        originalId: img.id,
+      })));
+      setOriginalExistingIds(sorted.map((img: any) => img.id));
       setLoading(false);
     };
 
