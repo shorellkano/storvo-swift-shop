@@ -22,10 +22,8 @@ const EditProduct = () => {
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [existingImages, setExistingImages] = useState<any[]>([]);
-  const [newImages, setNewImages] = useState<File[]>([]);
-  const [newPreviews, setNewPreviews] = useState<string[]>([]);
-  const [removedImageIds, setRemovedImageIds] = useState<string[]>([]);
+  const [allImages, setAllImages] = useState<{ id: string; preview: string; file?: File; isExisting?: boolean; originalId?: string }[]>([]);
+  const [originalExistingIds, setOriginalExistingIds] = useState<string[]>([]);
 
   const [form, setForm] = useState({
     name: "",
