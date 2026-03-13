@@ -215,7 +215,7 @@ const Storefront = () => {
                 <div
                   key={product.id}
                   className="group cursor-pointer rounded-2xl border border-border/60 bg-card overflow-hidden shadow-card hover:shadow-card-hover transition-all"
-                  onClick={() => { setSelectedProduct(product); setActiveImageIndex(0); }}
+                  onClick={() => { setSelectedProduct(product); }}
                 >
                   <div className="relative aspect-square bg-muted">
                     {mainImage ? (
