@@ -17,6 +17,7 @@ import PostUploadSuccess from "@/components/dashboard/PostUploadSuccess";
 import UpgradeModal from "@/components/dashboard/UpgradeModal";
 import LiveStorePreview from "@/components/dashboard/LiveStorePreview";
 import { useIsMobile } from "@/hooks/use-mobile";
+import DraggableImageUpload from "@/components/product/DraggableImageUpload";
 
 const AddProduct = () => {
   const { user } = useAuth();
