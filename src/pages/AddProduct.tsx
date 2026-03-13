@@ -117,13 +117,14 @@ const AddProduct = () => {
 
       if (error) throw error;
 
-      await Promise.all(images.map(async (file, i) => {
-        const fileExt = file.name.split(".").pop();
+      await Promise.all(uploadImages.map(async (img, i) => {
+        if (!img.file) return;
+        const fileExt = img.file.name.split(".").pop();
         const filePath = `${store.id}/${product.id}/${i}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("product-images")
-          .upload(filePath, file);
+          .upload(filePath, img.file);
 
         if (uploadError) { console.error("Upload error:", uploadError); return; }
 
