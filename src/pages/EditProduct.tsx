@@ -292,47 +292,12 @@ const EditProduct = () => {
                 )}
 
                 {/* Images */}
-                <div>
-                  <Label>Product Images</Label>
-                  <div className="mt-2 grid grid-cols-3 sm:grid-cols-5 gap-3">
-                    {visibleExisting.map((img) => (
-                      <div key={img.id} className="relative aspect-square rounded-xl overflow-hidden border border-border">
-                        <img src={img.image_url} alt="" className="h-full w-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => removeExistingImage(img.id)}
-                          className="absolute top-1 right-1 rounded-full bg-card/80 p-1 backdrop-blur"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                    {newPreviews.map((preview, i) => (
-                      <div key={`new-${i}`} className="relative aspect-square rounded-xl overflow-hidden border border-border border-dashed">
-                        <img src={preview} alt="" className="h-full w-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => removeNewImage(i)}
-                          className="absolute top-1 right-1 rounded-full bg-card/80 p-1 backdrop-blur"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                    {totalImages < maxImages && (
-                      <label className="flex aspect-square cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border hover:border-primary/40 transition-colors">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={handleNewImages}
-                          className="hidden"
-                        />
-                        <Upload className="h-6 w-6 text-muted-foreground" />
-                      </label>
-                    )}
-                  </div>
-                </div>
+                <DraggableImageUpload
+                  images={allImages}
+                  onChange={setAllImages}
+                  maxImages={maxImages}
+                  isPro={isPro}
+                />
 
                 <Button variant="hero" size="lg" className="w-full" disabled={saving}>
                   {saving ? "Saving..." : "Save Changes"}
