@@ -360,7 +360,7 @@ const AddProduct = () => {
                     productName={form.name}
                     productPrice={form.price}
                     productDescription={form.description}
-                    productImages={previews}
+                    productImages={uploadImages.map(img => img.preview)}
                     existingProducts={existingProducts}
                   />
                 </div>
