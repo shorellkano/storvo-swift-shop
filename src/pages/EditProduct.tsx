@@ -175,8 +175,6 @@ const EditProduct = () => {
     );
   }
 
-  const visibleExisting = existingImages.filter((img) => !removedImageIds.includes(img.id));
-  const totalImages = visibleExisting.length + newPreviews.length;
 
   return (
     <SidebarProvider>
