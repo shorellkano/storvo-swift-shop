@@ -12,7 +12,7 @@ const ProductPreview = () => {
   const navigate = useNavigate();
   const [store, setStore] = useState<any>(null);
   const [product, setProduct] = useState<any>(null);
-  const [activeImage, setActiveImage] = useState(0);
+  
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
