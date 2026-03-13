@@ -3,7 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ShoppingCart, Zap, ChevronLeft, ChevronRight, Package, Loader2 } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Zap, Loader2 } from "lucide-react";
+import ProductImageCarousel from "@/components/product/ProductImageCarousel";
 
 const ProductPreview = () => {
   const { user } = useAuth();
