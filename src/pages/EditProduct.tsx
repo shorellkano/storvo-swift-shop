@@ -114,25 +114,36 @@ const EditProduct = () => {
 
       if (error) throw error;
 
+      // Determine which existing images were removed
+      const currentExistingIds = allImages.filter(img => img.isExisting).map(img => img.originalId!);
+      const removedIds = originalExistingIds.filter(id => !currentExistingIds.includes(id));
+
       // Remove deleted images
-      for (const imgId of removedImageIds) {
-        const img = existingImages.find((i) => i.id === imgId);
-        if (img) {
-          const path = img.image_url.split("/product-images/")[1];
+      for (const imgId of removedIds) {
+        const { data: imgData } = await supabase.from("product_images").select("image_url").eq("id", imgId).single();
+        if (imgData) {
+          const path = imgData.image_url.split("/product-images/")[1];
           if (path) await supabase.storage.from("product-images").remove([path]);
           await supabase.from("product_images").delete().eq("id", imgId);
         }
       }
 
-      // Upload new images in parallel
-      const remainingCount = existingImages.length - removedImageIds.length;
-      await Promise.all(newImages.map(async (file, i) => {
-        const fileExt = file.name.split(".").pop();
+      // Update display_order for remaining existing images
+      const existingInOrder = allImages.filter(img => img.isExisting);
+      for (let i = 0; i < existingInOrder.length; i++) {
+        await supabase.from("product_images").update({ display_order: allImages.indexOf(existingInOrder[i]) }).eq("id", existingInOrder[i].originalId!);
+      }
+
+      // Upload new images
+      const newItems = allImages.filter(img => !img.isExisting && img.file);
+      await Promise.all(newItems.map(async (img) => {
+        const i = allImages.indexOf(img);
+        const fileExt = img.file!.name.split(".").pop();
         const filePath = `${store.id}/${id}/${Date.now()}_${i}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("product-images")
-          .upload(filePath, file);
+          .upload(filePath, img.file!);
 
         if (uploadError) { console.error(uploadError); return; }
 
@@ -143,7 +154,7 @@ const EditProduct = () => {
         await supabase.from("product_images").insert({
           product_id: id,
           image_url: publicUrl,
-          display_order: remainingCount + i,
+          display_order: i,
         });
       }));
 
