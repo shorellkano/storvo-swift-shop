@@ -79,62 +79,11 @@ const ProductPreview = () => {
       </div>
 
       <div className="mx-auto max-w-3xl px-4 py-6">
-        {/* Image gallery */}
-        <div className="relative aspect-square sm:aspect-[4/3] rounded-2xl bg-muted overflow-hidden">
-          {images.length > 0 ? (
-            <img
-              src={images[activeImage]?.image_url}
-              alt={product.name}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center">
-              <Package className="h-16 w-16 text-muted-foreground" />
-            </div>
-          )}
-          {images.length > 1 && (
-            <>
-              <button
-                onClick={() => setActiveImage((prev) => (prev - 1 + images.length) % images.length)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-card/80 backdrop-blur-sm p-2 shadow-md hover:bg-accent transition-colors"
-              >
-                <ChevronLeft className="h-5 w-5 text-foreground" />
-              </button>
-              <button
-                onClick={() => setActiveImage((prev) => (prev + 1) % images.length)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-card/80 backdrop-blur-sm p-2 shadow-md hover:bg-accent transition-colors"
-              >
-                <ChevronRight className="h-5 w-5 text-foreground" />
-              </button>
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                {images.map((_: any, i: number) => (
-                  <button
-                    key={i}
-                    onClick={() => setActiveImage(i)}
-                    className={`h-2 w-2 rounded-full transition-all ${i === activeImage ? "bg-primary-foreground scale-125" : "bg-primary-foreground/50"}`}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Thumbnails */}
-        {images.length > 1 && (
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-            {images.map((img: any, i: number) => (
-              <button
-                key={img.id}
-                onClick={() => setActiveImage(i)}
-                className={`h-16 w-16 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
-                  i === activeImage ? "border-primary" : "border-transparent opacity-60"
-                }`}
-              >
-                <img src={img.image_url} alt="" className="h-full w-full object-cover" />
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Image carousel */}
+        <ProductImageCarousel
+          images={images}
+          productName={product.name}
+        />
 
         {/* Product details */}
         <div className="mt-6 space-y-4">
