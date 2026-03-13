@@ -88,31 +88,6 @@ const EditProduct = () => {
   const { isPro } = useSubscription(store?.id || null);
   const maxImages = isPro ? PRO_IMAGE_LIMIT : FREE_IMAGE_LIMIT;
 
-  const handleNewImages = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const currentTotal = existingImages.length - removedImageIds.length + newImages.length;
-    const allowed = files.slice(0, maxImages - currentTotal);
-    if (allowed.length < files.length) {
-      toast.error(`Maximum ${maxImages} images per product`);
-    }
-    if (allowed.length === 0) return;
-    setNewImages((prev) => [...prev, ...allowed]);
-    allowed.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (e) => setNewPreviews((prev) => [...prev, e.target?.result as string]);
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const removeExistingImage = (imageId: string) => {
-    setRemovedImageIds((prev) => [...prev, imageId]);
-  };
-
-  const removeNewImage = (index: number) => {
-    setNewImages((prev) => prev.filter((_, i) => i !== index));
-    setNewPreviews((prev) => prev.filter((_, i) => i !== index));
-  };
-
   const generateSlug = (name: string) =>
     name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
