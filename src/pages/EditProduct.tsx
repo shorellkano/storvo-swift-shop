@@ -9,10 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ArrowLeft, Upload, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { useSubscription, FREE_IMAGE_LIMIT, PRO_IMAGE_LIMIT } from "@/hooks/useSubscription";
+import DraggableImageUpload from "@/components/product/DraggableImageUpload";
 
 const EditProduct = () => {
   const { user } = useAuth();
@@ -21,10 +22,8 @@ const EditProduct = () => {
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [existingImages, setExistingImages] = useState<any[]>([]);
-  const [newImages, setNewImages] = useState<File[]>([]);
-  const [newPreviews, setNewPreviews] = useState<string[]>([]);
-  const [removedImageIds, setRemovedImageIds] = useState<string[]>([]);
+  const [allImages, setAllImages] = useState<{ id: string; preview: string; file?: File; isExisting?: boolean; originalId?: string }[]>([]);
+  const [originalExistingIds, setOriginalExistingIds] = useState<string[]>([]);
 
   const [form, setForm] = useState({
     name: "",
@@ -72,9 +71,14 @@ const EditProduct = () => {
         isActive: product.is_active,
       });
 
-      setExistingImages(
-        (product.product_images || []).sort((a: any, b: any) => a.display_order - b.display_order)
-      );
+      const sorted = (product.product_images || []).sort((a: any, b: any) => a.display_order - b.display_order);
+      setAllImages(sorted.map((img: any) => ({
+        id: img.id,
+        preview: img.image_url,
+        isExisting: true,
+        originalId: img.id,
+      })));
+      setOriginalExistingIds(sorted.map((img: any) => img.id));
       setLoading(false);
     };
 
@@ -83,31 +87,6 @@ const EditProduct = () => {
 
   const { isPro } = useSubscription(store?.id || null);
   const maxImages = isPro ? PRO_IMAGE_LIMIT : FREE_IMAGE_LIMIT;
-
-  const handleNewImages = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const currentTotal = existingImages.length - removedImageIds.length + newImages.length;
-    const allowed = files.slice(0, maxImages - currentTotal);
-    if (allowed.length < files.length) {
-      toast.error(`Maximum ${maxImages} images per product`);
-    }
-    if (allowed.length === 0) return;
-    setNewImages((prev) => [...prev, ...allowed]);
-    allowed.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (e) => setNewPreviews((prev) => [...prev, e.target?.result as string]);
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const removeExistingImage = (imageId: string) => {
-    setRemovedImageIds((prev) => [...prev, imageId]);
-  };
-
-  const removeNewImage = (index: number) => {
-    setNewImages((prev) => prev.filter((_, i) => i !== index));
-    setNewPreviews((prev) => prev.filter((_, i) => i !== index));
-  };
 
   const generateSlug = (name: string) =>
     name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -135,25 +114,36 @@ const EditProduct = () => {
 
       if (error) throw error;
 
+      // Determine which existing images were removed
+      const currentExistingIds = allImages.filter(img => img.isExisting).map(img => img.originalId!);
+      const removedIds = originalExistingIds.filter(id => !currentExistingIds.includes(id));
+
       // Remove deleted images
-      for (const imgId of removedImageIds) {
-        const img = existingImages.find((i) => i.id === imgId);
-        if (img) {
-          const path = img.image_url.split("/product-images/")[1];
+      for (const imgId of removedIds) {
+        const { data: imgData } = await supabase.from("product_images").select("image_url").eq("id", imgId).single();
+        if (imgData) {
+          const path = imgData.image_url.split("/product-images/")[1];
           if (path) await supabase.storage.from("product-images").remove([path]);
           await supabase.from("product_images").delete().eq("id", imgId);
         }
       }
 
-      // Upload new images in parallel
-      const remainingCount = existingImages.length - removedImageIds.length;
-      await Promise.all(newImages.map(async (file, i) => {
-        const fileExt = file.name.split(".").pop();
+      // Update display_order for remaining existing images
+      const existingInOrder = allImages.filter(img => img.isExisting);
+      for (let i = 0; i < existingInOrder.length; i++) {
+        await supabase.from("product_images").update({ display_order: allImages.indexOf(existingInOrder[i]) }).eq("id", existingInOrder[i].originalId!);
+      }
+
+      // Upload new images
+      const newItems = allImages.filter(img => !img.isExisting && img.file);
+      await Promise.all(newItems.map(async (img) => {
+        const i = allImages.indexOf(img);
+        const fileExt = img.file!.name.split(".").pop();
         const filePath = `${store.id}/${id}/${Date.now()}_${i}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("product-images")
-          .upload(filePath, file);
+          .upload(filePath, img.file!);
 
         if (uploadError) { console.error(uploadError); return; }
 
@@ -164,7 +154,7 @@ const EditProduct = () => {
         await supabase.from("product_images").insert({
           product_id: id,
           image_url: publicUrl,
-          display_order: remainingCount + i,
+          display_order: i,
         });
       }));
 
@@ -185,8 +175,6 @@ const EditProduct = () => {
     );
   }
 
-  const visibleExisting = existingImages.filter((img) => !removedImageIds.includes(img.id));
-  const totalImages = visibleExisting.length + newPreviews.length;
 
   return (
     <SidebarProvider>
@@ -302,47 +290,12 @@ const EditProduct = () => {
                 )}
 
                 {/* Images */}
-                <div>
-                  <Label>Product Images</Label>
-                  <div className="mt-2 grid grid-cols-3 sm:grid-cols-5 gap-3">
-                    {visibleExisting.map((img) => (
-                      <div key={img.id} className="relative aspect-square rounded-xl overflow-hidden border border-border">
-                        <img src={img.image_url} alt="" className="h-full w-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => removeExistingImage(img.id)}
-                          className="absolute top-1 right-1 rounded-full bg-card/80 p-1 backdrop-blur"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                    {newPreviews.map((preview, i) => (
-                      <div key={`new-${i}`} className="relative aspect-square rounded-xl overflow-hidden border border-border border-dashed">
-                        <img src={preview} alt="" className="h-full w-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => removeNewImage(i)}
-                          className="absolute top-1 right-1 rounded-full bg-card/80 p-1 backdrop-blur"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                    {totalImages < maxImages && (
-                      <label className="flex aspect-square cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border hover:border-primary/40 transition-colors">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={handleNewImages}
-                          className="hidden"
-                        />
-                        <Upload className="h-6 w-6 text-muted-foreground" />
-                      </label>
-                    )}
-                  </div>
-                </div>
+                <DraggableImageUpload
+                  images={allImages}
+                  onChange={setAllImages}
+                  maxImages={maxImages}
+                  isPro={isPro}
+                />
 
                 <Button variant="hero" size="lg" className="w-full" disabled={saving}>
                   {saving ? "Saving..." : "Save Changes"}
