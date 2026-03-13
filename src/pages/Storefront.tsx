@@ -21,7 +21,7 @@ const Storefront = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  
   const [loading, setLoading] = useState(true);
   const [addedIds, setAddedIds] = useState<Record<string, boolean>>({});
   const [isOwner, setIsOwner] = useState(false);
