@@ -338,36 +338,12 @@ const AddProduct = () => {
                     )}
 
                     {/* Image Upload */}
-                    <div>
-                      <Label>Product Images</Label>
-                      <div className="mt-2 grid grid-cols-3 sm:grid-cols-5 gap-3">
-                        {previews.map((preview, i) => (
-                          <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border">
-                            <img src={preview} alt="" className="h-full w-full object-cover" />
-                            <button
-                              type="button"
-                              onClick={() => removeImage(i)}
-                              className="absolute top-1 right-1 rounded-full bg-card/80 p-1 backdrop-blur"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ))}
-                        {previews.length < maxImages && (
-                          <label className="flex aspect-square cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border hover:border-primary/40 transition-colors">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              multiple
-                              onChange={handleImageChange}
-                              className="hidden"
-                            />
-                            <Upload className="h-6 w-6 text-muted-foreground" />
-                          </label>
-                        )}
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground">Up to {maxImages} images, 5MB each</p>
-                    </div>
+                    <DraggableImageUpload
+                      images={uploadImages}
+                      onChange={setUploadImages}
+                      maxImages={maxImages}
+                      isPro={isPro}
+                    />
 
                     <Button variant="hero" size="lg" className="w-full" disabled={loading}>
                       {loading ? "Adding product..." : "Add Product"}
