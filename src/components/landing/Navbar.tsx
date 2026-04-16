@@ -18,8 +18,22 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => navigate("/auth")}>Log in</Button>
-          <Button variant="hero" size="sm" onClick={() => navigate("/auth")}>Create Store</Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/auth")}
+            data-testid="button-login-nav"
+          >
+            Log in
+          </Button>
+          <Button
+            variant="hero"
+            size="sm"
+            onClick={() => navigate("/auth?mode=signup")}
+            data-testid="button-create-store-nav"
+          >
+            Create Store
+          </Button>
         </div>
       </div>
     </nav>

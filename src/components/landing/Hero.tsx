@@ -125,8 +125,8 @@ const Hero = () => {
                     ))}
                   </div>
 
-                  {/* Bottom action */}
-                  <div className="mt-3 rounded-xl gradient-primary p-2.5 text-center shadow-button">
+                  {/* Bottom action - decorative mockup, not interactive */}
+                  <div className="pointer-events-none mt-3 rounded-xl gradient-primary p-2.5 text-center shadow-button select-none">
                     <span className="text-xs font-semibold text-primary-foreground">View All Products →</span>
                   </div>
                 </div>
