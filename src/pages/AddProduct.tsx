@@ -198,7 +198,7 @@ const AddProduct = () => {
                 </p>
                 <div className="mt-6 space-y-3">
                   <Button variant="hero" size="lg" className="w-full" onClick={() => setShowUpgrade(true)}>
-                    <Crown className="mr-2 h-4 w-4" /> Upgrade to Pro — ₦3,500/mo
+                    <Crown className="mr-2 h-4 w-4" /> Upgrade to Pro - ₦3,500/mo
                   </Button>
                   <Button variant="ghost" onClick={() => navigate("/dashboard/products")}>
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back to Products

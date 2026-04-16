@@ -181,7 +181,7 @@ const Checkout = () => {
           },
           onCancel: async () => {
             // Keep the order as pending (COD fallback)
-            toast.info("Payment cancelled. Order placed as pending — the seller will contact you.");
+            toast.info("Payment cancelled. Order placed as pending - the seller will contact you.");
             await finishOrder(order.id, orderNum, false);
           },
         });
@@ -232,7 +232,7 @@ const Checkout = () => {
                   </a>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-emerald-600">Save these links — they won't appear again.</p>
+              <p className="mt-2 text-xs text-emerald-600">Save these links - they won't appear again.</p>
             </div>
           )}
 

@@ -32,7 +32,7 @@ const features = [
   {
     icon: Package,
     title: "Physical & Digital Products",
-    description: "Sell anything — clothes, gadgets, e-books, courses. We support both.",
+    description: "Sell anything: clothes, gadgets, e-books, courses. We support both.",
   },
   {
     icon: BarChart3,

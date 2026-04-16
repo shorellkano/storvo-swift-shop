@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Check, Zap } from "lucide-react";
 
 const MONTHLY_PRICE = 3500;
-const YEARLY_PRICE = 30000; // ~₦2,500/mo — save 2+ months
+const YEARLY_PRICE = 30000; // ~₦2,500/mo - save 2+ months
 
 const freeFeatures = [
   "Up to 10 products",

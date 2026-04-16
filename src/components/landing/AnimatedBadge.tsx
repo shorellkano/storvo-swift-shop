@@ -30,7 +30,7 @@ const AnimatedBadge = () => {
       transition={{ duration: 0.6 }}
       className="mb-5 inline-flex"
     >
-      {/* Outer glow ring — rotates */}
+      {/* Outer glow ring: rotates */}
       <div className="relative inline-flex items-center">
         {/* Spinning gradient border */}
         <motion.div

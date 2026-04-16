@@ -21,7 +21,7 @@ const Hero = () => {
 
       <div className="relative mx-auto max-w-6xl px-6">
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-          {/* Left side — Copy */}
+          {/* Left side: Copy */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
@@ -65,7 +65,7 @@ const Hero = () => {
             </div>
           </motion.div>
 
-          {/* Right side — Phone mockup */}
+          {/* Right side: Phone mockup */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}

@@ -9,7 +9,7 @@ const steps = [
   {
     number: "02",
     title: "Add your products",
-    description: "Upload photos, set prices, and describe your products. Physical or digital — your choice.",
+    description: "Upload photos, set prices, and describe your products. Physical or digital, your choice.",
   },
   {
     number: "03",

@@ -185,7 +185,7 @@ const DashboardOverview = ({ store }: DashboardOverviewProps) => {
       {/* 7-day orders chart */}
       <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-card">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="font-display text-lg font-semibold text-foreground">Orders — last 7 days</h3>
+          <h3 className="font-display text-lg font-semibold text-foreground">Orders: last 7 days</h3>
           <Bell className="h-4 w-4 text-muted-foreground" title="Real-time alerts enabled" />
         </div>
         {chartData.every((d) => d.orders === 0) ? (

@@ -41,7 +41,7 @@ const Storefront = () => {
       setStore(storeData);
 
       // Set OG meta tags dynamically
-      document.title = `${storeData.name} — Shop on Storvo`;
+      document.title = `${storeData.name} | Shop on Storvo`;
       const setMeta = (property: string, content: string) => {
         let el = document.querySelector(`meta[property="${property}"]`) || document.querySelector(`meta[name="${property}"]`);
         if (!el) {
@@ -52,7 +52,7 @@ const Storefront = () => {
         }
         el.setAttribute("content", content);
       };
-      setMeta("og:title", `${storeData.name} — Shop on Storvo`);
+      setMeta("og:title", `${storeData.name} | Shop on Storvo`);
       setMeta("og:description", storeData.description || `Shop ${storeData.name} on Storvo`);
       if (storeData.logo_url) setMeta("og:image", storeData.logo_url);
       setMeta("og:url", window.location.href);
@@ -136,7 +136,7 @@ const Storefront = () => {
 
   const shareProduct = (product: any) => {
     const url = `${window.location.origin}/store/${slug}`;
-    const text = `Check out ${product.name} — ${formatCurrency(Number(product.price))}`;
+    const text = `Check out ${product.name} - ${formatCurrency(Number(product.price))}`;
     setShareTarget({ url, title: product.name, text });
   };
 
@@ -449,7 +449,7 @@ const Storefront = () => {
         text={shareTarget?.text}
       />
 
-      {/* Footer — hidden for Pro stores */}
+      {/* Footer: hidden for Pro stores */}
       {!isPro && (
         <footer className="border-t border-border/60 py-6 text-center text-xs text-muted-foreground">
           Powered by <a href="/" className="font-semibold text-primary hover:underline">Storvo</a>

@@ -125,7 +125,7 @@ const BillingSection = ({ subscription, storeId, onUpgrade, onCancelled }: Billi
             </ul>
           ) : (
             <Button variant="hero" size="lg" className="w-full" onClick={onUpgrade}>
-              <Crown className="mr-2 h-4 w-4" /> Upgrade to Pro — ₦3,500/mo
+              <Crown className="mr-2 h-4 w-4" /> Upgrade to Pro - ₦3,500/mo
             </Button>
           )}
         </div>

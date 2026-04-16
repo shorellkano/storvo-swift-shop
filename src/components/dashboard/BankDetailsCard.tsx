@@ -89,7 +89,7 @@ const BankDetailsCard = ({ storeId, storeName, hasSubaccount, onSubaccountCreate
 
       toast({
         title: "Bank account connected! ✅",
-        description: `${data.account_name || businessName} — ${bankName}. You'll now receive payments directly.`,
+        description: `${data.account_name || businessName} - ${bankName}. You'll now receive payments directly.`,
       });
     } catch (err: any) {
       toast({

@@ -97,7 +97,7 @@ const UpgradeModal = ({ open, onOpenChange, storeId, reason = "general" }: Upgra
           ) : (
             <Zap className="mr-2 h-4 w-4" />
           )}
-          {loading ? "Redirecting to Paystack…" : "Upgrade to Pro — ₦3,500/mo"}
+          {loading ? "Redirecting to Paystack..." : "Upgrade to Pro - ₦3,500/mo"}
         </Button>
         <p className="text-center text-xs text-muted-foreground">
           Powered by Paystack. Cancel anytime.

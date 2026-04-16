@@ -120,7 +120,7 @@ const Orders = () => {
                         <div>
                           <div className="flex items-center gap-3">
                             <h3 className="font-display font-semibold text-foreground">#{order.order_number}</h3>
-                            {/* Status badge — click to change */}
+                            {/* Status badge: click to change */}
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button

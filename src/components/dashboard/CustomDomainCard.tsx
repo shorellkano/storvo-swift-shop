@@ -149,7 +149,7 @@ const CustomDomainCard = ({ storeId, storeSlug, isPro, onUpgrade }: CustomDomain
           <Globe className="h-5 w-5 text-primary" /> Custom Domain
         </CardTitle>
         <CardDescription>
-          Connect your own domain — your Storvo link ({storeSlug}.storvo.co) stays active as fallback
+          Connect your own domain. Your Storvo link ({storeSlug}.storvo.co) stays active as a fallback.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -249,7 +249,7 @@ const CustomDomainCard = ({ storeId, storeSlug, isPro, onUpgrade }: CustomDomain
         {/* Fallback info */}
         <div className="rounded-lg bg-accent/50 px-3 py-2">
           <p className="text-xs text-muted-foreground">
-            Default URL: <span className="font-medium text-primary">{storeSlug}.storvo.co</span> — always active
+            Default URL: <span className="font-medium text-primary">{storeSlug}.storvo.co</span> (always active)
           </p>
         </div>
       </CardContent>
