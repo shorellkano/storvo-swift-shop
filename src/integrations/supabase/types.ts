@@ -413,6 +413,7 @@ export type Database = {
           id: string
           instagram_handle: string | null
           is_active: boolean
+          is_verified: boolean
           logo_url: string | null
           name: string
           paystack_subaccount_code: string | null
@@ -430,6 +431,7 @@ export type Database = {
           id?: string
           instagram_handle?: string | null
           is_active?: boolean
+          is_verified?: boolean
           logo_url?: string | null
           name: string
           paystack_subaccount_code?: string | null
@@ -447,6 +449,7 @@ export type Database = {
           id?: string
           instagram_handle?: string | null
           is_active?: boolean
+          is_verified?: boolean
           logo_url?: string | null
           name?: string
           paystack_subaccount_code?: string | null
@@ -456,6 +459,71 @@ export type Database = {
           whatsapp_number?: string | null
         }
         Relationships: []
+      }
+      verification_applications: {
+        Row: {
+          admin_notes: string | null
+          bank_account_name: string
+          bank_account_number: string
+          bank_name: string
+          business_name: string | null
+          created_at: string
+          full_legal_name: string
+          id: string
+          id_document_url: string | null
+          phone_number: string
+          reviewed_at: string | null
+          status: string
+          store_id: string
+          submitted_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          bank_account_name: string
+          bank_account_number: string
+          bank_name: string
+          business_name?: string | null
+          created_at?: string
+          full_legal_name: string
+          id?: string
+          id_document_url?: string | null
+          phone_number: string
+          reviewed_at?: string | null
+          status?: string
+          store_id: string
+          submitted_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          bank_account_name?: string
+          bank_account_number?: string
+          bank_name?: string
+          business_name?: string | null
+          created_at?: string
+          full_legal_name?: string
+          id?: string
+          id_document_url?: string | null
+          phone_number?: string
+          reviewed_at?: string | null
+          status?: string
+          store_id?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_applications_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscriptions: {
         Row: {

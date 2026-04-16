@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageCircle, Share2, Store, X, Check, ArrowLeft } from "lucide-react";
 import ProductImageCarousel from "@/components/product/ProductImageCarousel";
+import VerifiedBadge from "@/components/VerifiedBadge";
 import { toast } from "sonner";
 import ShareSheet from "@/components/dashboard/ShareSheet";
 
@@ -193,6 +194,9 @@ const Storefront = () => {
               </div>
             )}
             <span className="font-display font-semibold text-foreground">{store.name}</span>
+            {store.is_verified && (
+              <VerifiedBadge size="sm" className="ml-1" />
+            )}
           </div>
           <button
             onClick={() => { setSelectedProduct(null); setShowCart(!showCart); }}
@@ -308,9 +312,16 @@ const Storefront = () => {
               <div className="p-5 space-y-4">
                 <div>
                   <h2 className="font-display text-xl font-bold text-foreground">{selectedProduct.name}</h2>
-                  <p className="text-lg font-bold mt-1" style={{ color: brandColor }}>
-                    {formatCurrency(Number(selectedProduct.price))}
-                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <p className="text-lg font-bold" style={{ color: brandColor }}>
+                      {formatCurrency(Number(selectedProduct.price))}
+                    </p>
+                    {store?.is_verified && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 px-2 py-0.5 text-blue-600 dark:text-blue-400 text-[11px] font-semibold leading-none">
+                        Sold by {store.name} - Verified Seller
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {selectedProduct.description && (

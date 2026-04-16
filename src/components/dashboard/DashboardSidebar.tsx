@@ -11,6 +11,7 @@ import {
   LogOut,
   Store,
   Crown,
+  BadgeCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -36,6 +37,7 @@ const menuItems = [
   { title: "Orders", url: "/dashboard/orders", icon: ShoppingCart },
   { title: "Customers", url: "/dashboard/customers", icon: Users },
   { title: "Analytics", url: "/dashboard/analytics", icon: BarChart3 },
+  { title: "Verification", url: "/dashboard/verification", icon: BadgeCheck },
   { title: "Store Settings", url: "/dashboard/settings", icon: Settings },
 ];
 

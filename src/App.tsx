@@ -14,6 +14,7 @@ import EditProduct from "./pages/EditProduct";
 import ProductPreview from "./pages/ProductPreview";
 import Orders from "./pages/Orders";
 import StoreSettings from "./pages/StoreSettings";
+import VerificationPage from "./pages/dashboard/VerificationPage";
 import Storefront from "./pages/Storefront";
 import Checkout from "./pages/Checkout";
 import ResetPassword from "./pages/ResetPassword";
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/dashboard/products/:id/preview" element={<ProductPreview />} />
             <Route path="/dashboard/orders" element={<Orders />} />
             <Route path="/dashboard/settings" element={<StoreSettings />} />
+            <Route path="/dashboard/verification" element={<VerificationPage />} />
             <Route path="/store/:slug" element={<Storefront />} />
             <Route path="/store/:slug/checkout" element={<Checkout />} />
             <Route path="/reset-password" element={<ResetPassword />} />
