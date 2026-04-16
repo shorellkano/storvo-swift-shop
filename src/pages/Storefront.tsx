@@ -25,6 +25,7 @@ const Storefront = () => {
   const [loading, setLoading] = useState(true);
   const [addedIds, setAddedIds] = useState<Record<string, boolean>>({});
   const [isOwner, setIsOwner] = useState(false);
+  const [isPro, setIsPro] = useState(false);
   const [shareTarget, setShareTarget] = useState<{ url: string; title: string; text?: string } | null>(null);
 
   useEffect(() => {
@@ -58,6 +59,14 @@ const Storefront = () => {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (user && user.id === storeData.user_id) setIsOwner(true);
+
+      // Check if store is on Pro plan (to remove branding)
+      const { data: sub } = await supabase
+        .from("subscriptions")
+        .select("plan, is_active")
+        .eq("store_id", storeData.id)
+        .maybeSingle();
+      if (sub?.plan === "pro" && sub?.is_active) setIsPro(true);
 
       const { data: prods } = await supabase
         .from("products")
@@ -440,10 +449,12 @@ const Storefront = () => {
         text={shareTarget?.text}
       />
 
-      {/* Footer */}
-      <footer className="border-t border-border/60 py-6 text-center text-xs text-muted-foreground">
-        Powered by <a href="/" className="font-semibold text-primary hover:underline">Storvo</a>
-      </footer>
+      {/* Footer — hidden for Pro stores */}
+      {!isPro && (
+        <footer className="border-t border-border/60 py-6 text-center text-xs text-muted-foreground">
+          Powered by <a href="/" className="font-semibold text-primary hover:underline">Storvo</a>
+        </footer>
+      )}
     </div>
   );
 };

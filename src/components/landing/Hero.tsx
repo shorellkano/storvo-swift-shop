@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ShoppingBag, Shield, Clock, Zap, Star, Heart } from "lucide-react";
+import AnimatedBadge from "./AnimatedBadge";
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -26,10 +27,7 @@ const Hero = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7 }}
           >
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium text-muted-foreground shadow-card">
-              <Zap className="h-3.5 w-3.5 text-storvo-cyan" />
-              Built for social sellers
-            </div>
+            <AnimatedBadge />
 
             <h1 className="font-display text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
               Turn your social media into a{" "}
