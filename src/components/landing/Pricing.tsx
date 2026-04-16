@@ -102,8 +102,36 @@ const Pricing = () => {
               </span>
             </div>
 
-            <h3 className="font-display text-xl font-bold text-foreground">Pro</h3>
-            <p className="mt-1 text-sm text-muted-foreground">For serious sellers</p>
+            {/* Pro heading + sliding toggle side by side */}
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-display text-xl font-bold text-foreground">Pro</h3>
+                <p className="mt-0.5 text-sm text-muted-foreground">For serious sellers</p>
+              </div>
+
+              {/* Sliding pill toggle */}
+              <div
+                className="relative flex h-9 w-[100px] shrink-0 cursor-pointer items-center rounded-full border border-border/60 bg-muted p-1 transition-colors"
+                onClick={() => setYearly((v) => !v)}
+                role="switch"
+                aria-checked={yearly}
+                data-testid="toggle-yearly-billing"
+                title={yearly ? "Switch to monthly" : "Switch to yearly - save 29%"}
+              >
+                <motion.div
+                  layout
+                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                  className={`absolute h-7 w-[46px] rounded-full shadow-sm ${yearly ? "bg-emerald-500" : "bg-primary"}`}
+                  style={{ left: yearly ? "calc(100% - 46px - 4px)" : "4px" }}
+                />
+                <span className={`relative z-10 flex-1 text-center text-[10px] font-bold transition-colors ${!yearly ? "text-primary-foreground" : "text-muted-foreground"}`}>
+                  Mo
+                </span>
+                <span className={`relative z-10 flex-1 text-center text-[10px] font-bold transition-colors ${yearly ? "text-white" : "text-muted-foreground"}`}>
+                  Yr
+                </span>
+              </div>
+            </div>
 
             {/* Price */}
             <div className="mt-6 min-h-[64px]">
@@ -169,66 +197,41 @@ const Pricing = () => {
               )}
             </AnimatePresence>
 
-            {/* CTA + Sliding billing toggle side by side */}
-            <div className="mt-5 flex items-center gap-3">
+            {/* CTA */}
+            <div className="mt-5">
               <Button
                 variant="hero"
                 size="lg"
-                className="flex-1"
+                className="w-full"
                 onClick={() => navigate("/auth")}
               >
                 <Zap className="mr-2 h-4 w-4" />
                 {yearly ? "Go Pro Yearly" : "Go Pro"}
               </Button>
-
-              {/* Sliding pill toggle */}
-              <div
-                className="relative flex h-10 w-[108px] shrink-0 cursor-pointer items-center rounded-full border border-border/60 bg-muted p-1 transition-colors"
-                onClick={() => setYearly((v) => !v)}
-                role="switch"
-                aria-checked={yearly}
-                data-testid="toggle-yearly-billing"
-              >
-                {/* Sliding thumb */}
-                <motion.div
-                  layout
-                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
-                  className={`absolute h-8 w-12 rounded-full shadow-sm ${yearly ? "bg-emerald-500" : "bg-primary"}`}
-                  style={{ left: yearly ? "calc(100% - 52px - 4px)" : "4px" }}
-                />
-                {/* Labels */}
-                <span className={`relative z-10 flex-1 text-center text-[10px] font-semibold transition-colors ${!yearly ? "text-primary-foreground" : "text-muted-foreground"}`}>
-                  Mo
-                </span>
-                <span className={`relative z-10 flex-1 text-center text-[10px] font-semibold transition-colors ${yearly ? "text-white" : "text-muted-foreground"}`}>
-                  Yr
-                </span>
-              </div>
+              <AnimatePresence mode="wait">
+                {!yearly ? (
+                  <motion.p
+                    key="monthly-hint"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="mt-2 text-center text-[11px] text-muted-foreground"
+                  >
+                    Slide to Yr above to save {SAVING_PCT}%
+                  </motion.p>
+                ) : (
+                  <motion.p
+                    key="yearly-hint"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="mt-2 text-center text-[11px] font-medium text-emerald-600"
+                  >
+                    Yearly plan - {fmt(YEARLY_SAVING)} saved vs monthly
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
-
-            {/* Discount badge next to toggle */}
-            <AnimatePresence>
-              {!yearly && (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="mt-2 text-right text-[11px] text-muted-foreground"
-                >
-                  Switch to yearly - save {SAVING_PCT}%
-                </motion.p>
-              )}
-              {yearly && (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="mt-2 text-right text-[11px] font-medium text-emerald-600"
-                >
-                  Yearly selected - {fmt(YEARLY_SAVING)} saved
-                </motion.p>
-              )}
-            </AnimatePresence>
           </motion.div>
         </div>
       </div>
