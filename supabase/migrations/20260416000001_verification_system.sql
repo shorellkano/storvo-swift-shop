@@ -1,5 +1,5 @@
 -- Verified Seller System
--- Apply this in the Supabase SQL Editor at https://supabase.com/dashboard
+-- Run this in Supabase SQL Editor (Primary Database, postgres role)
 
 -- 1. Add is_verified column to stores
 ALTER TABLE public.stores
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS public.verification_applications (
   updated_at timestamp with time zone NOT NULL DEFAULT now()
 );
 
--- 3. Row Level Security
+-- 3. Enable Row Level Security
 ALTER TABLE public.verification_applications ENABLE ROW LEVEL SECURITY;
 
 -- Sellers can view their own applications
@@ -39,19 +39,19 @@ CREATE POLICY "Sellers can submit verification applications"
   ON public.verification_applications FOR INSERT
   WITH CHECK (user_id = auth.uid());
 
--- Sellers can update their own pending applications (e.g. add docs)
+-- Sellers can update their own pending or info-requested applications
 CREATE POLICY "Sellers can update own pending applications"
   ON public.verification_applications FOR UPDATE
   USING (user_id = auth.uid() AND status IN ('pending', 'info_requested'));
 
--- 4. Trigger: when status changes to 'verified', set stores.is_verified = true
+-- 4. Trigger: auto-update stores.is_verified when status changes
 CREATE OR REPLACE FUNCTION public.sync_store_verification()
 RETURNS TRIGGER AS $$
 BEGIN
   IF NEW.status = 'verified' AND OLD.status <> 'verified' THEN
     UPDATE public.stores SET is_verified = true WHERE id = NEW.store_id;
   END IF;
-  IF NEW.status IN ('rejected') AND OLD.status = 'verified' THEN
+  IF NEW.status = 'rejected' AND OLD.status = 'verified' THEN
     UPDATE public.stores SET is_verified = false WHERE id = NEW.store_id;
   END IF;
   RETURN NEW;
@@ -62,41 +62,3 @@ DROP TRIGGER IF EXISTS on_verification_status_change ON public.verification_appl
 CREATE TRIGGER on_verification_status_change
   AFTER UPDATE ON public.verification_applications
   FOR EACH ROW EXECUTE FUNCTION public.sync_store_verification();
-
--- 5. Storage bucket for verification documents (private)
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-  'verification-documents',
-  'verification-documents',
-  false,
-  10485760,
-  ARRAY['image/jpeg','image/png','application/pdf']
-)
-ON CONFLICT (id) DO NOTHING;
-
--- Authenticated users can upload their own docs
-CREATE POLICY "Sellers upload own verification docs"
-  ON storage.objects FOR INSERT
-  TO authenticated
-  WITH CHECK (
-    bucket_id = 'verification-documents'
-    AND auth.uid()::text = (storage.foldername(name))[1]
-  );
-
--- Authenticated users can read their own docs
-CREATE POLICY "Sellers read own verification docs"
-  ON storage.objects FOR SELECT
-  TO authenticated
-  USING (
-    bucket_id = 'verification-documents'
-    AND auth.uid()::text = (storage.foldername(name))[1]
-  );
-
--- Authenticated users can delete/replace their own docs
-CREATE POLICY "Sellers delete own verification docs"
-  ON storage.objects FOR DELETE
-  TO authenticated
-  USING (
-    bucket_id = 'verification-documents'
-    AND auth.uid()::text = (storage.foldername(name))[1]
-  );
