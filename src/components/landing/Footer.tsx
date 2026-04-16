@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import storvoLogo from "@/assets/storvo-logo.png";
 
 const Footer = () => {
@@ -14,12 +14,13 @@ const Footer = () => {
           <div className="flex items-center gap-8">
             <a href="#features" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Features</a>
             <a href="#pricing" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Pricing</a>
-            <a href="#" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Support</a>
+            <Link to="/legal/terms" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Terms</Link>
+            <Link to="/legal/privacy" className="text-sm text-muted-foreground transition-colors hover:text-foreground">Privacy</Link>
           </div>
 
           <div className="text-sm text-muted-foreground text-center md:text-right">
             <p>© {new Date().getFullYear()} Storvo. All rights reserved.</p>
-            <p className="mt-1">Powered by Upbeatz Marcom</p>
+            <p className="mt-1">Powered by LHF Studio</p>
           </div>
         </div>
       </div>
