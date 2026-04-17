@@ -90,6 +90,9 @@ const Checkout = () => {
     setOrderComplete(true);
     toast.success("Order placed successfully!");
 
+    // Clear session cart so it doesn't linger after purchase
+    try { sessionStorage.removeItem(`storvo_cart_${slug}`); } catch {}
+
     // Send email notifications (non-blocking)
     supabase.functions.invoke("send-order-email", { body: { orderId } }).catch(() => {});
   };

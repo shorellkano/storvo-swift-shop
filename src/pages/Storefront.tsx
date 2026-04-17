@@ -10,6 +10,8 @@ import ProductImageCarousel from "@/components/product/ProductImageCarousel";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { toast } from "sonner";
 import ShareSheet from "@/components/dashboard/ShareSheet";
+import CartDrawer from "@/components/storefront/CartDrawer";
+import { useCart } from "@/hooks/useCart";
 import storvoLogo from "@/assets/storvo-logo.png";
 
 const SOCIAL_DOMAINS: Record<string, string> = {
@@ -47,19 +49,14 @@ const detectSocialSource = (): string | null => {
   return null;
 };
 
-interface CartItem {
-  product: any;
-  quantity: number;
-}
-
 const Storefront = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
+  const { cart, addToCart: hookAddToCart, updateQuantity, removeFromCart, cartCount, cartTotal } = useCart(slug);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [addedIds, setAddedIds] = useState<Record<string, boolean>>({});
@@ -182,31 +179,14 @@ const Storefront = () => {
     setMeta("og:description", product.description || `Buy ${product.name} from ${store?.name} on Storvo`);
   };
 
-  useEffect(() => {
-    const state = location.state as any;
-    if (state?.restoredCart) {
-      setCart(state.restoredCart);
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state]);
-
   const addToCart = (product: any) => {
-    setCart((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
-      if (existing) return prev.map((item) => item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
-      return [...prev, { product, quantity: 1 }];
-    });
+    hookAddToCart(product);
     const id = product.id;
     setAddedIds((prev) => ({ ...prev, [id]: true }));
     setTimeout(() => setAddedIds((prev) => { const next = { ...prev }; delete next[id]; return next; }), 2000);
     toast.success("Added to cart!");
   };
 
-  const updateQuantity = (productId: string, delta: number) => {
-    setCart((prev) => prev.map((item) => item.product.id === productId ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
-  };
-
-  const cartTotal = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0);
   const deliveryFee = store?.delivery_fee ? Number(store.delivery_fee) : 0;
   const orderTotal = cartTotal + deliveryFee;
 
@@ -306,11 +286,12 @@ const Storefront = () => {
           <button
             onClick={() => { setSelectedProduct(null); setShowCart(!showCart); }}
             className="relative rounded-xl bg-accent p-2 transition-colors hover:bg-accent/80"
+            data-testid="button-open-cart"
           >
             <ShoppingCart className="h-5 w-5 text-foreground" />
-            {cart.length > 0 && (
+            {cartCount > 0 && (
               <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-white" style={{ background: brandColor }}>
-                {cart.reduce((s, i) => s + i.quantity, 0)}
+                {cartCount}
               </span>
             )}
           </button>
@@ -587,10 +568,14 @@ const Storefront = () => {
                           style={{ borderColor: brandColor, color: brandColor }}
                           disabled={outOfStock}
                           onClick={() => {
-                            addToCart(selectedProduct);
+                            const existing = cart.find(i => i.product.id === selectedProduct.id);
+                            const newCart = existing
+                              ? cart.map(i => i.product.id === selectedProduct.id ? { ...i, quantity: i.quantity + 1 } : i)
+                              : [...cart, { product: selectedProduct, quantity: 1 }];
+                            hookAddToCart(selectedProduct);
                             setSelectedProduct(null);
                             setShowCart(false);
-                            navigate(`/store/${slug}/checkout`, { state: { cart: [...cart, { product: selectedProduct, quantity: 1 }], store } });
+                            navigate(`/store/${slug}/checkout`, { state: { cart: newCart, store } });
                           }}
                         >
                           Buy Now
@@ -638,8 +623,13 @@ const Storefront = () => {
                     className="w-full h-12 rounded-xl text-base font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
                     style={{ background: outOfStock ? undefined : brandColor }}
                     onClick={() => {
+                      const existing = cart.find(i => i.product.id === selectedProduct.id);
+                      const newCart = existing
+                        ? cart.map(i => i.product.id === selectedProduct.id ? { ...i, quantity: i.quantity + 1 } : i)
+                        : [...cart, { product: selectedProduct, quantity: 1 }];
+                      hookAddToCart(selectedProduct);
                       setSelectedProduct(null);
-                      navigate(`/store/${slug}/checkout`, { state: { cart: [{ product: selectedProduct, quantity: 1 }], store } });
+                      navigate(`/store/${slug}/checkout`, { state: { cart: newCart, store } });
                     }}
                   >
                     <Zap className="h-4 w-4" /> Buy Now - {formatCurrency(Number(selectedProduct.price))}
@@ -774,68 +764,19 @@ const Storefront = () => {
       )}
 
       {/* Cart Drawer */}
-      {showCart && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={() => setShowCart(false)} />
-          <div className="relative w-full max-w-md bg-card p-6 shadow-xl overflow-y-auto">
-            <div className="flex items-center gap-3 mb-6">
-              <button onClick={() => setShowCart(false)} className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-              <h2 className="font-display text-xl font-bold text-foreground">Your Cart</h2>
-            </div>
-            {cart.length === 0 ? (
-              <p className="text-muted-foreground text-center py-12">Your cart is empty</p>
-            ) : (
-              <>
-                <div className="space-y-4">
-                  {cart.map((item) => (
-                    <div key={item.product.id} className="flex items-center gap-4 rounded-xl bg-muted/50 p-3">
-                      <div className="h-14 w-14 rounded-lg bg-muted overflow-hidden flex-shrink-0">
-                        {item.product.product_images?.[0]?.image_url && (
-                          <img src={item.product.product_images[0].image_url} alt="" className="h-full w-full object-cover" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{item.product.name}</p>
-                        <p className="text-sm" style={{ color: brandColor }}>{formatCurrency(Number(item.product.price))}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => updateQuantity(item.product.id, -1)} className="h-7 w-7 rounded-lg bg-card border border-border text-sm font-medium">-</button>
-                        <span className="text-sm font-medium w-4 text-center">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.product.id, 1)} className="h-7 w-7 rounded-lg bg-card border border-border text-sm font-medium">+</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6 space-y-2 border-t border-border pt-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span className="text-foreground">{formatCurrency(cartTotal)}</span>
-                  </div>
-                  {deliveryFee > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Delivery</span>
-                      <span className="text-foreground">{formatCurrency(deliveryFee)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-base font-bold">
-                    <span className="text-foreground">Total</span>
-                    <span style={{ color: brandColor }}>{formatCurrency(orderTotal)}</span>
-                  </div>
-                </div>
-
-                <Link to={`/store/${slug}/checkout`} state={{ cart, store }}>
-                  <Button size="lg" className="mt-6 w-full transition-all duration-150 active:scale-95 text-white" style={{ background: brandColor }}>
-                    Checkout - {formatCurrency(orderTotal)}
-                  </Button>
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      <CartDrawer
+        isOpen={showCart}
+        onClose={() => setShowCart(false)}
+        cart={cart}
+        onUpdateQuantity={updateQuantity}
+        onRemove={removeFromCart}
+        onCheckout={() => {
+          setShowCart(false);
+          navigate(`/store/${slug}/checkout`, { state: { cart, store } });
+        }}
+        brandColor={brandColor}
+        deliveryFee={deliveryFee}
+      />
 
       <ShareSheet
         open={!!shareTarget}
