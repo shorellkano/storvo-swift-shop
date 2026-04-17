@@ -5,13 +5,47 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ShoppingCart, MessageCircle, Share2, Store, X, Check, ArrowLeft, HandshakeIcon, Copy, Facebook, Twitter } from "lucide-react";
-import { SiWhatsapp } from "react-icons/si";
+import { ShoppingCart, MessageCircle, Share2, Store, X, Check, ArrowLeft, HandshakeIcon, Copy, Zap } from "lucide-react";
 import ProductImageCarousel from "@/components/product/ProductImageCarousel";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { toast } from "sonner";
 import ShareSheet from "@/components/dashboard/ShareSheet";
 import storvoLogo from "@/assets/storvo-logo.png";
+
+const SOCIAL_DOMAINS: Record<string, string> = {
+  "instagram.com": "Instagram",
+  "tiktok.com": "TikTok",
+  "facebook.com": "Facebook",
+  "snapchat.com": "Snapchat",
+  "wa.me": "WhatsApp",
+  "t.co": "Twitter / X",
+  "twitter.com": "Twitter / X",
+  "x.com": "X (Twitter)",
+  "telegram.org": "Telegram",
+  "pinterest.com": "Pinterest",
+  "youtube.com": "YouTube",
+};
+
+const REF_MAP: Record<string, string> = {
+  instagram: "Instagram", ig: "Instagram", insta: "Instagram",
+  tiktok: "TikTok", tt: "TikTok",
+  facebook: "Facebook", fb: "Facebook",
+  whatsapp: "WhatsApp", wa: "WhatsApp",
+  twitter: "Twitter / X", tw: "Twitter / X", x: "X (Twitter)",
+  snapchat: "Snapchat", snap: "Snapchat",
+  telegram: "Telegram", tg: "Telegram",
+};
+
+const detectSocialSource = (): string | null => {
+  const ref = document.referrer;
+  for (const domain of Object.keys(SOCIAL_DOMAINS)) {
+    if (ref.includes(domain)) return SOCIAL_DOMAINS[domain];
+  }
+  const params = new URLSearchParams(window.location.search);
+  const refParam = (params.get("ref") || params.get("utm_source") || "").toLowerCase();
+  if (refParam && REF_MAP[refParam]) return REF_MAP[refParam];
+  return null;
+};
 
 interface CartItem {
   product: any;
@@ -32,12 +66,19 @@ const Storefront = () => {
   const [isOwner, setIsOwner] = useState(false);
   const [isPro, setIsPro] = useState(false);
   const [shareTarget, setShareTarget] = useState<{ url: string; title: string; text?: string } | null>(null);
+  const [isSocialMode, setIsSocialMode] = useState(false);
+  const [socialSource, setSocialSource] = useState<string | null>(null);
 
   // Make Offer state
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [offerSubmitting, setOfferSubmitting] = useState(false);
   const [offerSent, setOfferSent] = useState(false);
   const [offerForm, setOfferForm] = useState({ buyerName: "", buyerPhone: "", offeredPrice: "", message: "" });
+
+  useEffect(() => {
+    const source = detectSocialSource();
+    if (source) { setIsSocialMode(true); setSocialSource(source); }
+  }, []);
 
   useEffect(() => {
     const fetchStore = async () => {
@@ -260,12 +301,97 @@ const Storefront = () => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 py-8">
+      <main className={isSocialMode ? "max-w-lg mx-auto px-4 py-6" : "mx-auto max-w-5xl px-4 py-8"}>
+        {/* Social mode banner */}
+        {isSocialMode && (
+          <div className="mb-5 flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5">
+            <Zap className="h-4 w-4 text-primary shrink-0" />
+            <p className="text-sm font-medium text-foreground">
+              Quick checkout enabled - tap <span className="font-bold">Buy Now</span> on any product
+            </p>
+          </div>
+        )}
+
         {products.length === 0 ? (
           <div className="py-20 text-center">
             <p className="text-muted-foreground">No products available yet. Check back soon!</p>
           </div>
+        ) : isSocialMode ? (
+          /* Social Commerce Mode - vertical scroll, full-width conversion cards */
+          <div className="space-y-5">
+            {products.map((product) => {
+              const mainImage = product.product_images?.[0]?.image_url;
+              const outOfStock = product.track_inventory && product.stock_quantity <= 0;
+              const hasVideo = (product.product_videos?.length || 0) > 0;
+              const isAdded = addedIds[product.id];
+              return (
+                <div key={product.id} className="rounded-2xl border border-border/60 bg-card overflow-hidden shadow-card">
+                  <div
+                    className="relative aspect-[4/3] bg-muted cursor-pointer"
+                    onClick={() => openProduct(product, store.id)}
+                  >
+                    {mainImage ? (
+                      <img src={mainImage} alt={product.name} className="h-full w-full object-cover" loading="lazy" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <Store className="h-10 w-10 text-muted-foreground" />
+                      </div>
+                    )}
+                    {outOfStock && (
+                      <div className="absolute inset-0 bg-foreground/50 flex items-center justify-center">
+                        <span className="rounded-full bg-card px-3 py-1 text-sm font-semibold text-foreground">Out of stock</span>
+                      </div>
+                    )}
+                    {hasVideo && (
+                      <div className="absolute top-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-xs text-white font-medium">Video</div>
+                    )}
+                    {/* Tap-to-view overlay hint */}
+                    <div className="absolute bottom-3 right-3 rounded-full bg-black/40 px-2.5 py-1 text-xs text-white">Tap to view</div>
+                  </div>
+
+                  <div className="p-4">
+                    <h3
+                      className="font-display text-lg font-bold text-foreground cursor-pointer hover:opacity-80"
+                      onClick={() => openProduct(product, store.id)}
+                    >
+                      {product.name}
+                    </h3>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <span className="text-xl font-bold" style={{ color: brandColor }}>
+                        {formatCurrency(Number(product.price))}
+                      </span>
+                      {product.is_negotiable && (
+                        <span className="rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 text-xs font-semibold px-2 py-0.5">Negotiable</span>
+                      )}
+                    </div>
+                    {product.description && (
+                      <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+                    )}
+                    <div className="mt-4 space-y-2">
+                      <button
+                        disabled={outOfStock}
+                        className="w-full h-12 rounded-xl text-base font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                        style={{ background: outOfStock ? undefined : brandColor }}
+                        onClick={() => navigate(`/store/${slug}/checkout`, { state: { cart: [{ product, quantity: 1 }], store } })}
+                      >
+                        <Zap className="h-4 w-4" />
+                        Buy Now - {formatCurrency(Number(product.price))}
+                      </button>
+                      <button
+                        disabled={outOfStock}
+                        className="w-full h-10 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50 border border-border/60 bg-accent hover:bg-accent/80 text-foreground flex items-center justify-center gap-2"
+                        onClick={() => addToCart(product)}
+                      >
+                        {isAdded ? <><Check className="h-4 w-4 text-green-600" /> Added to Cart</> : <><ShoppingCart className="h-4 w-4" /> Add to Cart</>}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         ) : (
+          /* Standard Mode - product grid */
           <div className="grid gap-5 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {products.map((product) => {
               const mainImage = product.product_images?.[0]?.image_url;
@@ -340,7 +466,9 @@ const Storefront = () => {
         return (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
             <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setSelectedProduct(null)} />
-            <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-card shadow-xl">
+
+            {/* Modal: flex column so sticky buy bar can sit at bottom */}
+            <div className="relative w-full max-w-lg max-h-[92vh] flex flex-col rounded-t-2xl sm:rounded-2xl bg-card shadow-xl">
               <button
                 onClick={() => setSelectedProduct(null)}
                 className="absolute top-3 right-3 z-10 rounded-full bg-card/80 backdrop-blur-sm p-2 shadow-md hover:bg-accent transition-colors"
@@ -348,105 +476,154 @@ const Storefront = () => {
                 <X className="h-5 w-5 text-foreground" />
               </button>
 
-              <ProductImageCarousel
-                images={images}
-                videos={videos}
-                productName={selectedProduct.name}
-                allowDownload={allowDownload}
-              />
+              {/* Scrollable content */}
+              <div className="flex-1 overflow-y-auto">
+                <ProductImageCarousel
+                  images={images}
+                  videos={videos}
+                  productName={selectedProduct.name}
+                  allowDownload={allowDownload}
+                />
 
-              <div className="p-5 space-y-4">
-                <div>
-                  <h2 className="font-display text-xl font-bold text-foreground">{selectedProduct.name}</h2>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <p className="text-lg font-bold" style={{ color: brandColor }}>
-                      {formatCurrency(Number(selectedProduct.price))}
-                    </p>
-                    {isNegotiable && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 px-2 py-0.5 text-amber-700 dark:text-amber-400 text-[11px] font-semibold">
-                        Negotiable
-                      </span>
-                    )}
-                    {store?.is_verified && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 px-2 py-0.5 text-blue-600 dark:text-blue-400 text-[11px] font-semibold">
-                        Verified Seller
-                      </span>
-                    )}
+                <div className="p-5 space-y-4">
+                  <div>
+                    <h2 className="font-display text-xl font-bold text-foreground">{selectedProduct.name}</h2>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <p className="text-lg font-bold" style={{ color: brandColor }}>
+                        {formatCurrency(Number(selectedProduct.price))}
+                      </p>
+                      {isNegotiable && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 px-2 py-0.5 text-amber-700 dark:text-amber-400 text-[11px] font-semibold">
+                          Negotiable
+                        </span>
+                      )}
+                      {store?.is_verified && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 px-2 py-0.5 text-blue-600 dark:text-blue-400 text-[11px] font-semibold">
+                          Verified Seller
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                {selectedProduct.description && (
-                  <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{selectedProduct.description}</p>
-                )}
-
-                {selectedProduct.track_inventory && (
-                  <p className="text-xs text-muted-foreground">
-                    {outOfStock ? "Out of stock" : `${selectedProduct.stock_quantity} in stock`}
-                  </p>
-                )}
-
-                {/* Primary actions */}
-                <div className="space-y-3 pt-2">
-                  <Button
-                    size="lg"
-                    className="w-full font-semibold transition-all duration-150 active:scale-95 text-white"
-                    style={{ background: brandColor }}
-                    disabled={outOfStock}
-                    onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}
-                  >
-                    <ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart
-                  </Button>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full font-semibold transition-all duration-150 active:scale-95"
-                    style={{ borderColor: brandColor, color: brandColor }}
-                    disabled={outOfStock}
-                    onClick={() => {
-                      addToCart(selectedProduct);
-                      setSelectedProduct(null);
-                      setShowCart(false);
-                      navigate(`/store/${slug}/checkout`, { state: { cart: [...cart, { product: selectedProduct, quantity: 1 }], store } });
-                    }}
-                  >
-                    Buy Now
-                  </Button>
-
-                  {isNegotiable && (
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="w-full font-semibold"
-                      onClick={() => { setShowOfferModal(true); }}
-                    >
-                      <HandshakeIcon className="mr-2 h-4 w-4" /> Make an Offer
-                    </Button>
+                  {selectedProduct.description && (
+                    <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{selectedProduct.description}</p>
                   )}
-                </div>
 
-                {/* Secondary actions */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => openWhatsApp(selectedProduct)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl p-3 text-sm font-medium transition-colors hover:opacity-80 text-white"
-                    style={{ backgroundColor: '#25D366' }}
-                  >
-                    <MessageCircle className="h-4 w-4" /> Chat
-                  </button>
-                  <button
-                    onClick={() => copyLink(selectedProduct)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-accent p-3 text-sm font-medium hover:bg-accent/80 transition-colors"
-                  >
-                    <Copy className="h-4 w-4 text-foreground" /> <span className="text-foreground">Copy Link</span>
-                  </button>
-                  <button
-                    onClick={() => shareProduct(selectedProduct)}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-accent p-3 text-sm font-medium hover:bg-accent/80 transition-colors"
-                  >
-                    <Share2 className="h-4 w-4 text-foreground" /> <span className="text-foreground">Share</span>
-                  </button>
+                  {selectedProduct.track_inventory && (
+                    <p className="text-xs text-muted-foreground">
+                      {outOfStock ? "Out of stock" : `${selectedProduct.stock_quantity} in stock`}
+                    </p>
+                  )}
+
+                  {/* Standard mode: buttons inside scroll area */}
+                  {!isSocialMode && (
+                    <>
+                      <div className="space-y-3 pt-2">
+                        <Button
+                          size="lg"
+                          className="w-full font-semibold transition-all duration-150 active:scale-95 text-white"
+                          style={{ background: brandColor }}
+                          disabled={outOfStock}
+                          onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}
+                        >
+                          <ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart
+                        </Button>
+                        <Button
+                          size="lg"
+                          variant="outline"
+                          className="w-full font-semibold transition-all duration-150 active:scale-95"
+                          style={{ borderColor: brandColor, color: brandColor }}
+                          disabled={outOfStock}
+                          onClick={() => {
+                            addToCart(selectedProduct);
+                            setSelectedProduct(null);
+                            setShowCart(false);
+                            navigate(`/store/${slug}/checkout`, { state: { cart: [...cart, { product: selectedProduct, quantity: 1 }], store } });
+                          }}
+                        >
+                          Buy Now
+                        </Button>
+                        {isNegotiable && (
+                          <Button size="lg" variant="outline" className="w-full font-semibold" onClick={() => setShowOfferModal(true)}>
+                            <HandshakeIcon className="mr-2 h-4 w-4" /> Make an Offer
+                          </Button>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openWhatsApp(selectedProduct)}
+                          className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl p-3 text-sm font-medium transition-colors hover:opacity-80 text-white"
+                          style={{ backgroundColor: '#25D366' }}
+                        >
+                          <MessageCircle className="h-4 w-4" /> Chat
+                        </button>
+                        <button
+                          onClick={() => copyLink(selectedProduct)}
+                          className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-accent p-3 text-sm font-medium hover:bg-accent/80 transition-colors"
+                        >
+                          <Copy className="h-4 w-4 text-foreground" /> <span className="text-foreground">Copy Link</span>
+                        </button>
+                        <button
+                          onClick={() => shareProduct(selectedProduct)}
+                          className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-accent p-3 text-sm font-medium hover:bg-accent/80 transition-colors"
+                        >
+                          <Share2 className="h-4 w-4 text-foreground" /> <span className="text-foreground">Share</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Social mode: extra padding so sticky bar doesn't cover content */}
+                  {isSocialMode && <div className="h-2" />}
                 </div>
               </div>
+
+              {/* Social mode: sticky Buy Now bar */}
+              {isSocialMode && (
+                <div className="shrink-0 border-t border-border/60 bg-card p-3 space-y-2 rounded-b-2xl">
+                  <button
+                    disabled={outOfStock}
+                    className="w-full h-12 rounded-xl text-base font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                    style={{ background: outOfStock ? undefined : brandColor }}
+                    onClick={() => {
+                      setSelectedProduct(null);
+                      navigate(`/store/${slug}/checkout`, { state: { cart: [{ product: selectedProduct, quantity: 1 }], store } });
+                    }}
+                  >
+                    <Zap className="h-4 w-4" /> Buy Now - {formatCurrency(Number(selectedProduct.price))}
+                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      disabled={outOfStock}
+                      className="flex-1 h-9 rounded-lg border border-border/60 bg-accent text-sm font-medium text-foreground hover:bg-accent/80 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}
+                    >
+                      <ShoppingCart className="h-3.5 w-3.5" /> Add to Cart
+                    </button>
+                    <button
+                      className="flex-1 h-9 rounded-lg text-sm font-medium text-white flex items-center justify-center gap-1.5 hover:opacity-80 transition-opacity"
+                      style={{ backgroundColor: '#25D366' }}
+                      onClick={() => openWhatsApp(selectedProduct)}
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" /> Chat
+                    </button>
+                    {isNegotiable && (
+                      <button
+                        className="flex-1 h-9 rounded-lg border border-border/60 bg-accent text-sm font-medium text-foreground hover:bg-accent/80 transition-colors flex items-center justify-center gap-1.5"
+                        onClick={() => setShowOfferModal(true)}
+                      >
+                        <HandshakeIcon className="h-3.5 w-3.5" /> Offer
+                      </button>
+                    )}
+                    <button
+                      className="h-9 w-9 rounded-lg border border-border/60 bg-accent text-foreground hover:bg-accent/80 transition-colors flex items-center justify-center shrink-0"
+                      onClick={() => shareProduct(selectedProduct)}
+                    >
+                      <Share2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );

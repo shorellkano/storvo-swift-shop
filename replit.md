@@ -61,6 +61,17 @@ supabase/
 - Storefront: tracks view per product click via `product_views` insert; supports `?product=slug` deep links to auto-open a product modal
 - Product share URL format: `${origin}/store/${store.slug}?product=${product.slug}`
 
+### Social Commerce Mode
+- Auto-detected via `document.referrer` (checks instagram.com, tiktok.com, facebook.com, snapchat.com, wa.me, t.co, twitter.com, x.com, telegram.org, pinterest.com, youtube.com)
+- Fallback: URL params `?ref=` or `?utm_source=` mapped via REF_MAP (e.g. `?ref=ig`, `?ref=fb`, `?ref=wa`)
+- When detected: `isSocialMode=true`, `socialSource` set to platform name
+- **Social Mode layout** (max-w-lg single column, mobile-first):
+  - "Quick checkout enabled" banner at top
+  - Product cards: 4:3 aspect image, large product name, large price, Buy Now (full width, brand color, goes direct to checkout), Add to Cart (secondary)
+  - Product modal: flex column layout with scrollable content + sticky bottom bar (Buy Now, Add to Cart, Chat on WhatsApp, Share, Make Offer if negotiable)
+- **Standard Mode layout**: unchanged 2/3/4 column grid, modal with scrollable buttons
+- No database changes required for this feature
+
 ### Media Commerce System (migration: 20260417000006_media_commerce.sql)
 - `product_videos` table: video files per product (video_url, display_order), public read, owner insert/delete
   - Storage bucket: `product-videos` (public)
