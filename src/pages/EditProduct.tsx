@@ -15,6 +15,7 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { useSubscription, FREE_IMAGE_LIMIT, PRO_IMAGE_LIMIT } from "@/hooks/useSubscription";
 import DraggableImageUpload from "@/components/product/DraggableImageUpload";
 import UpgradeModal from "@/components/dashboard/UpgradeModal";
+import RelatedProductsPicker from "@/components/product/RelatedProductsPicker";
 
 const EditProduct = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,6 +28,7 @@ const EditProduct = () => {
   const [originalExistingIds, setOriginalExistingIds] = useState<string[]>([]);
   const [existingVideos, setExistingVideos] = useState<{ id: string; video_url: string; display_order: number }[]>([]);
   const [uploadVideos, setUploadVideos] = useState<{ id: string; name: string; file: File; preview: string }[]>([]);
+  const [relatedProductIds, setRelatedProductIds] = useState<string[]>([]);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
@@ -83,6 +85,13 @@ const EditProduct = () => {
         .eq("product_id", id)
         .order("display_order");
       setExistingVideos(vids || []);
+
+      const { data: related } = await supabase
+        .from("product_related")
+        .select("related_product_id")
+        .eq("product_id", id)
+        .order("display_order");
+      setRelatedProductIds((related || []).map((r: any) => r.related_product_id));
 
       setLoading(false);
     };
@@ -185,6 +194,18 @@ const EditProduct = () => {
         const { data: { publicUrl } } = supabase.storage.from("product-videos").getPublicUrl(filePath);
         await supabase.from("product_videos").insert({ product_id: id, store_id: store.id, video_url: publicUrl, display_order: allImages.length + existingVideos.length + i });
       }));
+
+      // Save related products: delete all then re-insert
+      await supabase.from("product_related").delete().eq("product_id", id);
+      if (relatedProductIds.length > 0) {
+        await supabase.from("product_related").insert(
+          relatedProductIds.map((rId, i) => ({
+            product_id: id,
+            related_product_id: rId,
+            display_order: i,
+          }))
+        );
+      }
 
       toast.success("Product updated!");
       navigate("/dashboard/products");
@@ -401,6 +422,14 @@ const EditProduct = () => {
                     />
                   </div>
                 </div>
+
+                {/* Related Products */}
+                <RelatedProductsPicker
+                  storeId={store.id}
+                  currentProductId={id}
+                  selectedIds={relatedProductIds}
+                  onChange={setRelatedProductIds}
+                />
 
                 <Button variant="hero" size="lg" className="w-full" disabled={saving}>
                   {saving ? "Saving..." : "Save Changes"}

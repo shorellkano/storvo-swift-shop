@@ -68,6 +68,7 @@ const Storefront = () => {
   const [shareTarget, setShareTarget] = useState<{ url: string; title: string; text?: string } | null>(null);
   const [isSocialMode, setIsSocialMode] = useState(false);
   const [socialSource, setSocialSource] = useState<string | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
 
   // Make Offer state
   const [showOfferModal, setShowOfferModal] = useState(false);
@@ -153,9 +154,21 @@ const Storefront = () => {
 
   const openProduct = (product: any, storeId: string) => {
     setSelectedProduct(product);
+    setRelatedProducts([]);
     setOfferSent(false);
     setOfferForm({ buyerName: "", buyerPhone: "", offeredPrice: "", message: "" });
     trackProductView(product.id, storeId);
+
+    // Fetch related products
+    supabase
+      .from("product_related")
+      .select("related_product_id, display_order, products:related_product_id(id, name, price, product_images(image_url, display_order))")
+      .eq("product_id", product.id)
+      .order("display_order")
+      .then(({ data }) => {
+        const items = (data || []).map((r: any) => r.products).filter(Boolean);
+        setRelatedProducts(items);
+      });
 
     // Update OG tags for product sharing
     const setMeta = (property: string, content: string) => {
@@ -513,6 +526,42 @@ const Storefront = () => {
                     <p className="text-xs text-muted-foreground">
                       {outOfStock ? "Out of stock" : `${selectedProduct.stock_quantity} in stock`}
                     </p>
+                  )}
+
+                  {/* Related Products */}
+                  {relatedProducts.length > 0 && (
+                    <div className="pt-2">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Frequently Bought Together</p>
+                      <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1" data-testid="related-products-row">
+                        {relatedProducts.map((rp) => {
+                          const rpImage = (rp.product_images || []).sort((a: any, b: any) => a.display_order - b.display_order)[0]?.image_url;
+                          return (
+                            <button
+                              key={rp.id}
+                              type="button"
+                              onClick={() => {
+                                const full = products.find((p) => p.id === rp.id);
+                                if (full && store) openProduct(full, store.id);
+                              }}
+                              className="flex-shrink-0 w-28 rounded-xl overflow-hidden border border-border/60 bg-background hover:border-primary/60 transition-colors text-left"
+                              data-testid={`related-product-card-${rp.id}`}
+                            >
+                              <div className="h-24 w-full bg-muted">
+                                {rpImage ? (
+                                  <img src={rpImage} alt={rp.name} className="h-full w-full object-cover" />
+                                ) : (
+                                  <div className="h-full w-full bg-muted/60" />
+                                )}
+                              </div>
+                              <div className="p-2">
+                                <p className="text-xs font-medium text-foreground line-clamp-2 leading-tight">{rp.name}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">{formatCurrency(Number(rp.price))}</p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   )}
 
                   {/* Standard mode: buttons inside scroll area */}

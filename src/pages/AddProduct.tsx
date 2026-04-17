@@ -18,6 +18,7 @@ import UpgradeModal from "@/components/dashboard/UpgradeModal";
 import LiveStorePreview from "@/components/dashboard/LiveStorePreview";
 import { useIsMobile } from "@/hooks/use-mobile";
 import DraggableImageUpload from "@/components/product/DraggableImageUpload";
+import RelatedProductsPicker from "@/components/product/RelatedProductsPicker";
 
 const AddProduct = () => {
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ const AddProduct = () => {
   const [createdProduct, setCreatedProduct] = useState<{ id: string; name: string } | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [existingProducts, setExistingProducts] = useState<any[]>([]);
+  const [relatedProductIds, setRelatedProductIds] = useState<string[]>([]);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   const { canAddProduct, productCount, isPro, refetch } = useSubscription(store?.id || null);
@@ -76,6 +78,7 @@ const AddProduct = () => {
     });
     setUploadImages([]);
     setUploadVideos([]);
+    setRelatedProductIds([]);
     setCreatedProduct(null);
     refetch();
   };
@@ -150,6 +153,17 @@ const AddProduct = () => {
         const { data: { publicUrl } } = supabase.storage.from("product-videos").getPublicUrl(filePath);
         await supabase.from("product_videos").insert({ product_id: product.id, store_id: store.id, video_url: publicUrl, display_order: uploadImages.length + i });
       }));
+
+      // Save related products
+      if (relatedProductIds.length > 0) {
+        await supabase.from("product_related").insert(
+          relatedProductIds.map((rId, i) => ({
+            product_id: product.id,
+            related_product_id: rId,
+            display_order: i,
+          }))
+        );
+      }
 
       setCreatedProduct({ id: product.id, name: product.name });
     } catch (error: any) {
@@ -433,6 +447,13 @@ const AddProduct = () => {
                         />
                       </div>
                     </div>
+
+                    {/* Related Products */}
+                    <RelatedProductsPicker
+                      storeId={store.id}
+                      selectedIds={relatedProductIds}
+                      onChange={setRelatedProductIds}
+                    />
 
                     <Button variant="hero" size="lg" className="w-full" disabled={loading}>
                       {loading ? "Adding product..." : "Add Product"}
