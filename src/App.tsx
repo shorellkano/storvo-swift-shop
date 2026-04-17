@@ -21,6 +21,7 @@ import Storefront from "./pages/Storefront";
 import Checkout from "./pages/Checkout";
 import ResetPassword from "./pages/ResetPassword";
 import Legal from "./pages/Legal";
+import GrowthToolsPage from "./pages/dashboard/GrowthToolsPage";
 import AgencyApply from "./pages/AgencyApply";
 import AgencyDashboard from "./pages/agency/AgencyDashboard";
 import NotFound from "./pages/NotFound";
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/dashboard/orders" element={<Orders />} />
             <Route path="/dashboard/settings" element={<StoreSettings />} />
             <Route path="/dashboard/verification" element={<VerificationPage />} />
+            <Route path="/dashboard/growth" element={<GrowthToolsPage />} />
             <Route path="/dashboard/team" element={<TeamMembersPage />} />
             <Route path="/invite/:token" element={<InviteAccept />} />
             <Route path="/store/:slug" element={<Storefront />} />

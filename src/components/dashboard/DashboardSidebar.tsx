@@ -13,6 +13,7 @@ import {
   Crown,
   BadgeCheck,
   UsersRound,
+  Rocket,
 } from "lucide-react";
 import {
   Sidebar,
@@ -45,6 +46,7 @@ const ALL_MENU_ITEMS = [
   { title: "Orders", url: "/dashboard/orders", icon: ShoppingCart, permission: "orders.view" as const },
   { title: "Customers", url: "/dashboard/customers", icon: Users, permission: "customers.view" as const },
   { title: "Analytics", url: "/dashboard/analytics", icon: BarChart3, permission: "analytics.view" as const },
+  { title: "Growth Tools", url: "/dashboard/growth", icon: Rocket, permission: null, ownerOnly: true },
   { title: "Verification", url: "/dashboard/verification", icon: BadgeCheck, permission: null, ownerOnly: true },
   { title: "Team Members", url: "/dashboard/team", icon: UsersRound, permission: "team.manage" as const },
   { title: "Store Settings", url: "/dashboard/settings", icon: Settings, permission: "store.settings" as const },
