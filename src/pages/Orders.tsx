@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useStore } from "@/hooks/useStore";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { ShoppingCart, ChevronDown } from "lucide-react";
@@ -23,40 +22,27 @@ const ORDER_STATUSES = [
 ];
 
 const Orders = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [store, setStore] = useState<any>(null);
+  const { store, role, loading: storeLoading } = useStore();
   const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!store?.id) return;
 
-    const fetch = async () => {
-      const { data: storeData } = await supabase
-        .from("stores")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!storeData) { navigate("/setup"); return; }
-      setStore(storeData);
-
+    const fetchOrders = async () => {
       const { data } = await supabase
         .from("orders")
         .select("*, customers(name, phone, email, address, city, state), order_items(*, products(name, price))")
-        .eq("store_id", storeData.id)
+        .eq("store_id", store.id)
         .order("created_at", { ascending: false });
 
       setOrders(data || []);
-      setLoading(false);
+      setOrdersLoading(false);
     };
 
-    fetch();
-  }, [user, navigate]);
+    fetchOrders();
+  }, [store?.id]);
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     setUpdatingId(orderId);
@@ -83,12 +69,12 @@ const Orders = () => {
   const getStatusStyle = (status: string) =>
     ORDER_STATUSES.find((s) => s.value === status)?.color || "bg-gray-50 text-gray-700";
 
-  if (!store || loading) return null;
+  if (!store || storeLoading || ordersLoading) return null;
 
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <DashboardSidebar store={store} />
+        <DashboardSidebar store={store} role={role} />
         <div className="flex-1 flex flex-col">
           <header className="h-14 flex items-center border-b border-border/60 bg-card px-4">
             <SidebarTrigger className="mr-4" />

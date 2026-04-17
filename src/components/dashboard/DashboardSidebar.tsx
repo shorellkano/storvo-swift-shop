@@ -12,6 +12,7 @@ import {
   Store,
   Crown,
   BadgeCheck,
+  UsersRound,
 } from "lucide-react";
 import {
   Sidebar,
@@ -27,25 +28,34 @@ import {
 } from "@/components/ui/sidebar";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import storvoLogo from "@/assets/storvo-logo.png";
 import { useState } from "react";
 import UpgradeModal from "@/components/dashboard/UpgradeModal";
+import {
+  type TeamRole,
+  ROLE_LABELS,
+  ROLE_COLORS,
+  hasPermission,
+} from "@/lib/teamPermissions";
 
-const menuItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Products", url: "/dashboard/products", icon: Package },
-  { title: "Orders", url: "/dashboard/orders", icon: ShoppingCart },
-  { title: "Customers", url: "/dashboard/customers", icon: Users },
-  { title: "Analytics", url: "/dashboard/analytics", icon: BarChart3 },
-  { title: "Verification", url: "/dashboard/verification", icon: BadgeCheck },
-  { title: "Store Settings", url: "/dashboard/settings", icon: Settings },
+const ALL_MENU_ITEMS = [
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, permission: null },
+  { title: "Products", url: "/dashboard/products", icon: Package, permission: "products.view" as const },
+  { title: "Orders", url: "/dashboard/orders", icon: ShoppingCart, permission: "orders.view" as const },
+  { title: "Customers", url: "/dashboard/customers", icon: Users, permission: "customers.view" as const },
+  { title: "Analytics", url: "/dashboard/analytics", icon: BarChart3, permission: "analytics.view" as const },
+  { title: "Verification", url: "/dashboard/verification", icon: BadgeCheck, permission: null, ownerOnly: true },
+  { title: "Team Members", url: "/dashboard/team", icon: UsersRound, permission: "team.manage" as const },
+  { title: "Store Settings", url: "/dashboard/settings", icon: Settings, permission: "store.settings" as const },
 ];
 
 interface DashboardSidebarProps {
   store: any;
+  role?: TeamRole;
 }
 
-const DashboardSidebar = ({ store }: DashboardSidebarProps) => {
+const DashboardSidebar = ({ store, role = "owner" }: DashboardSidebarProps) => {
   const { signOut } = useAuth();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -53,6 +63,12 @@ const DashboardSidebar = ({ store }: DashboardSidebarProps) => {
   const [showUpgrade, setShowUpgrade] = useState(false);
 
   const { isPro } = useSubscription(store?.id || null);
+
+  const menuItems = ALL_MENU_ITEMS.filter((item) => {
+    if (item.ownerOnly && role !== "owner") return false;
+    if (item.permission === null) return true;
+    return hasPermission(role, item.permission);
+  });
 
   const handleSignOut = async () => {
     await signOut();
@@ -77,15 +93,22 @@ const DashboardSidebar = ({ store }: DashboardSidebarProps) => {
           </button>
 
           {!collapsed && store && (
-            <div className="mx-4 mb-4 rounded-xl bg-accent p-3">
+            <div className="mx-4 mb-2 rounded-xl bg-accent p-3">
               <p className="text-xs font-medium text-muted-foreground">Your store</p>
               <p className="text-sm font-semibold text-foreground truncate">{store.name}</p>
               <p className="text-xs text-storvo-indigo">{store.slug}.storvo.co</p>
+              {role !== "owner" && (
+                <Badge
+                  variant="outline"
+                  className={`mt-2 text-xs ${ROLE_COLORS[role]}`}
+                >
+                  {ROLE_LABELS[role]}
+                </Badge>
+              )}
             </div>
           )}
 
-          {/* Upgrade button for free users */}
-          {!isPro && !collapsed && (
+          {!isPro && !collapsed && role === "owner" && (
             <div className="mx-4 mb-4">
               <Button
                 variant="outline"

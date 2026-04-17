@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useStore } from "@/hooks/useStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,10 +16,9 @@ import { useSubscription, FREE_IMAGE_LIMIT, PRO_IMAGE_LIMIT } from "@/hooks/useS
 import DraggableImageUpload from "@/components/product/DraggableImageUpload";
 
 const EditProduct = () => {
-  const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [store, setStore] = useState<any>(null);
+  const { store, role, loading: storeLoading } = useStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [allImages, setAllImages] = useState<{ id: string; preview: string; file?: File; isExisting?: boolean; originalId?: string }[]>([]);
@@ -37,25 +36,14 @@ const EditProduct = () => {
   });
 
   useEffect(() => {
-    if (!user || !id) return;
+    if (!store?.id || !id) return;
 
     const fetchData = async () => {
-      const { data: storeData } = await supabase
-        .from("stores")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!storeData) { navigate("/setup"); return; }
-      setStore(storeData);
-
       const { data: product } = await supabase
         .from("products")
         .select("*, product_images(*)")
         .eq("id", id)
-        .eq("store_id", storeData.id)
+        .eq("store_id", store.id)
         .single();
 
       if (!product) { navigate("/dashboard/products"); return; }
@@ -83,7 +71,7 @@ const EditProduct = () => {
     };
 
     fetchData();
-  }, [user, id, navigate]);
+  }, [store?.id, id, navigate]);
 
   const { isPro } = useSubscription(store?.id || null);
   const maxImages = isPro ? PRO_IMAGE_LIMIT : FREE_IMAGE_LIMIT;
@@ -179,7 +167,7 @@ const EditProduct = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <DashboardSidebar store={store} />
+        <DashboardSidebar store={store} role={role} />
         <div className="flex-1 flex flex-col">
           <header className="h-14 flex items-center border-b border-border/60 bg-card px-4">
             <SidebarTrigger className="mr-4" />

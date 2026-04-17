@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useStore } from "@/hooks/useStore";
 import { useSubscription, FREE_PRODUCT_LIMIT } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
 import { Plus, Package, Search, Crown } from "lucide-react";
@@ -13,11 +13,10 @@ import FreePlanBanner from "@/components/dashboard/FreePlanBanner";
 import UpgradeModal from "@/components/dashboard/UpgradeModal";
 
 const Products = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const [store, setStore] = useState<any>(null);
+  const { store, role, loading: storeLoading } = useStore();
   const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [productsLoading, setProductsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showUpgrade, setShowUpgrade] = useState(false);
 
@@ -30,28 +29,13 @@ const Products = () => {
       .eq("store_id", storeId)
       .order("created_at", { ascending: false });
     setProducts(prods || []);
-    setLoading(false);
+    setProductsLoading(false);
   };
 
   useEffect(() => {
-    if (!user) return;
-
-    const init = async () => {
-      const { data: storeData } = await supabase
-        .from("stores")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!storeData) { navigate("/setup"); return; }
-      setStore(storeData);
-      fetchProducts(storeData.id);
-    };
-
-    init();
-  }, [user, navigate]);
+    if (!store?.id) return;
+    fetchProducts(store.id);
+  }, [store?.id]);
 
   const handleAddProduct = () => {
     if (!canAddProduct) {
@@ -72,12 +56,12 @@ const Products = () => {
     p.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (!store || loading) return null;
+  if (!store || storeLoading || productsLoading) return null;
 
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <DashboardSidebar store={store} />
+        <DashboardSidebar store={store} role={role} />
         <div className="flex-1 flex flex-col">
           <header className="h-14 flex items-center border-b border-border/60 bg-card px-4">
             <SidebarTrigger className="mr-4" />

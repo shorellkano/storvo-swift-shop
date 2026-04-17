@@ -15,6 +15,8 @@ import ProductPreview from "./pages/ProductPreview";
 import Orders from "./pages/Orders";
 import StoreSettings from "./pages/StoreSettings";
 import VerificationPage from "./pages/dashboard/VerificationPage";
+import TeamMembersPage from "./pages/dashboard/TeamMembersPage";
+import InviteAccept from "./pages/InviteAccept";
 import Storefront from "./pages/Storefront";
 import Checkout from "./pages/Checkout";
 import ResetPassword from "./pages/ResetPassword";
@@ -42,6 +44,8 @@ const App = () => (
             <Route path="/dashboard/orders" element={<Orders />} />
             <Route path="/dashboard/settings" element={<StoreSettings />} />
             <Route path="/dashboard/verification" element={<VerificationPage />} />
+            <Route path="/dashboard/team" element={<TeamMembersPage />} />
+            <Route path="/invite/:token" element={<InviteAccept />} />
             <Route path="/store/:slug" element={<Storefront />} />
             <Route path="/store/:slug/checkout" element={<Checkout />} />
             <Route path="/reset-password" element={<ResetPassword />} />

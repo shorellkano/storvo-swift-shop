@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useStore } from "@/hooks/useStore";
 import { useSubscription } from "@/hooks/useSubscription";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
@@ -23,13 +22,10 @@ const BRAND_COLORS = [
 ];
 
 const StoreSettings = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [store, setStore] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { store, role, loading, isOwner } = useStore();
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -46,31 +42,15 @@ const StoreSettings = () => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
-
-    const fetchStore = async () => {
-      const { data } = await supabase
-        .from("stores")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!data) { navigate("/setup"); return; }
-      setStore(data);
-      setName(data.name);
-      setDescription(data.description || "");
-      setBrandColor(data.brand_color || "#6366F1");
-      setWhatsappNumber(data.whatsapp_number || "");
-      setInstagramHandle(data.instagram_handle || "");
-      setDeliveryFee(data.delivery_fee?.toString() || "0");
-      setLogoUrl(data.logo_url);
-      setLoading(false);
-    };
-
-    fetchStore();
-  }, [user, navigate]);
+    if (!store) return;
+    setName(store.name);
+    setDescription(store.description || "");
+    setBrandColor(store.brand_color || "#6366F1");
+    setWhatsappNumber(store.whatsapp_number || "");
+    setInstagramHandle(store.instagram_handle || "");
+    setDeliveryFee(store.delivery_fee?.toString() || "0");
+    setLogoUrl(store.logo_url);
+  }, [store?.id]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -156,7 +136,7 @@ const StoreSettings = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <DashboardSidebar store={store} />
+        <DashboardSidebar store={store} role={role} />
         <div className="flex-1 flex flex-col">
           <header className="h-14 flex items-center border-b border-border/60 bg-card px-4">
             <SidebarTrigger className="mr-4" />
@@ -164,13 +144,15 @@ const StoreSettings = () => {
           </header>
           <main className="flex-1 p-6 bg-background">
             <div className="mx-auto max-w-2xl space-y-6">
-              {/* Billing & Subscription */}
-              <BillingSection
-                subscription={subscription}
-                storeId={store?.id || null}
-                onUpgrade={() => setShowUpgrade(true)}
-                onCancelled={() => refetchSubscription()}
-              />
+              {/* Billing & Subscription - owner only */}
+              {isOwner && (
+                <BillingSection
+                  subscription={subscription}
+                  storeId={store?.id || null}
+                  onUpgrade={() => setShowUpgrade(true)}
+                  onCancelled={() => refetchSubscription()}
+                />
+              )}
 
               {/* Store Logo */}
               <Card className="shadow-card">

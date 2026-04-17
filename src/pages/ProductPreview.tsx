@@ -1,40 +1,27 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useStore } from "@/hooks/useStore";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShoppingCart, Zap, Loader2 } from "lucide-react";
 import ProductImageCarousel from "@/components/product/ProductImageCarousel";
 
 const ProductPreview = () => {
-  const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [store, setStore] = useState<any>(null);
+  const { store, loading: storeLoading } = useStore();
   const [product, setProduct] = useState<any>(null);
-  
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user || !id) return;
+    if (!store?.id || !id) return;
 
     const fetchData = async () => {
-      const { data: storeData } = await supabase
-        .from("stores")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!storeData) { navigate("/setup"); return; }
-      setStore(storeData);
-
       const { data: prod } = await supabase
         .from("products")
         .select("*, product_images(*)")
         .eq("id", id)
-        .eq("store_id", storeData.id)
+        .eq("store_id", store.id)
         .single();
 
       if (!prod) { navigate("/dashboard/products"); return; }
@@ -43,7 +30,7 @@ const ProductPreview = () => {
     };
 
     fetchData();
-  }, [user, id, navigate]);
+  }, [store?.id, id, navigate]);
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN" }).format(amount);

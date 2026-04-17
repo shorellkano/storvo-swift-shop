@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useStore } from "@/hooks/useStore";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
@@ -96,11 +95,9 @@ const statusConfig: Record<VerificationStatus, {
 };
 
 const VerificationPage = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { store, role, loading: storeLoading } = useStore();
 
-  const [store, setStore] = useState<any>(null);
   const [application, setApplication] = useState<VerificationApplication | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -116,26 +113,17 @@ const VerificationPage = () => {
   const [documentName, setDocumentName] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) { navigate("/auth"); return; }
+    if (!store?.id) return;
     loadData();
-  }, [user]);
+  }, [store?.id]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const { data: storeData } = await supabase
-        .from("stores")
-        .select("*")
-        .eq("user_id", user!.id)
-        .maybeSingle();
-
-      if (!storeData) { navigate("/setup"); return; }
-      setStore(storeData);
-
       const { data: appData } = await supabase
         .from("verification_applications")
         .select("*")
-        .eq("store_id", storeData.id)
+        .eq("store_id", store!.id)
         .order("created_at", { ascending: false })
         .maybeSingle();
 
@@ -259,7 +247,7 @@ const VerificationPage = () => {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
-        <DashboardSidebar store={store} />
+        <DashboardSidebar store={store} role={role} />
         <div className="flex flex-1 flex-col">
           <header className="flex h-14 items-center gap-4 border-b border-border/40 px-6">
             <SidebarTrigger />

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useStore } from "@/hooks/useStore";
 import { useSubscription, FREE_IMAGE_LIMIT, PRO_IMAGE_LIMIT, FREE_PRODUCT_LIMIT } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,10 +20,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import DraggableImageUpload from "@/components/product/DraggableImageUpload";
 
 const AddProduct = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const [store, setStore] = useState<any>(null);
+  const { store, role, loading: storeLoading } = useStore();
   const [loading, setLoading] = useState(false);
   const [uploadImages, setUploadImages] = useState<{ id: string; preview: string; file?: File }[]>([]);
   const [createdProduct, setCreatedProduct] = useState<{ id: string; name: string } | null>(null);
@@ -43,27 +42,15 @@ const AddProduct = () => {
   });
 
   useEffect(() => {
-    if (!user) return;
+    if (!store?.id) return;
     supabase
-      .from("stores")
-      .select("*")
-      .eq("user_id", user.id)
+      .from("products")
+      .select("*, product_images(*)")
+      .eq("store_id", store.id)
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
-      .then(async ({ data }) => {
-        setStore(data);
-        if (data) {
-          const { data: prods } = await supabase
-            .from("products")
-            .select("*, product_images(*)")
-            .eq("store_id", data.id)
-            .order("created_at", { ascending: false })
-            .limit(6);
-          setExistingProducts(prods || []);
-        }
-      });
-  }, [user]);
+      .limit(6)
+      .then(({ data }) => setExistingProducts(data || []));
+  }, [store?.id]);
 
   const maxImages = isPro ? PRO_IMAGE_LIMIT : FREE_IMAGE_LIMIT;
 
@@ -154,7 +141,7 @@ const AddProduct = () => {
     return (
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
-          <DashboardSidebar store={store} />
+          <DashboardSidebar store={store} role={role} />
           <div className="flex-1 flex flex-col">
             <header className="h-14 flex items-center border-b border-border/60 bg-card px-4">
               <SidebarTrigger className="mr-4" />
@@ -179,7 +166,7 @@ const AddProduct = () => {
     return (
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
-          <DashboardSidebar store={store} />
+          <DashboardSidebar store={store} role={role} />
           <div className="flex-1 flex flex-col">
             <header className="h-14 flex items-center border-b border-border/60 bg-card px-4">
               <SidebarTrigger className="mr-4" />
@@ -216,7 +203,7 @@ const AddProduct = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <DashboardSidebar store={store} />
+        <DashboardSidebar store={store} role={role} />
         <div className="flex-1 flex flex-col">
           <header className="h-14 flex items-center border-b border-border/60 bg-card px-4">
             <SidebarTrigger className="mr-4" />

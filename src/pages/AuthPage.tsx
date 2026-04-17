@@ -13,6 +13,7 @@ const AuthPage = () => {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const defaultMode = params.get("mode") === "signup" ? false : true;
+  const redirectTo = params.get("redirect") || "/dashboard";
 
   const [isLogin, setIsLogin] = useState(defaultMode);
   const [email, setEmail] = useState("");
@@ -30,9 +31,9 @@ const AuthPage = () => {
 
   useEffect(() => {
     if (!authLoading && user) {
-      navigate("/dashboard", { replace: true });
+      navigate(redirectTo, { replace: true });
     }
-  }, [authLoading, user, navigate]);
+  }, [authLoading, user, navigate, redirectTo]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -21,9 +21,17 @@ src/
   integrations/
     supabase/client.ts  # Supabase client (uses VITE_SUPABASE_URL + VITE_SUPABASE_PUBLISHABLE_KEY)
     lovable/index.ts    # OAuth helper (now wraps supabase.auth.signInWithOAuth directly)
-  pages/                # All route pages
-  components/           # Reusable UI components
-  hooks/                # Custom hooks
+  lib/
+    teamPermissions.ts  # TeamRole type, ROLE_LABELS, ROLE_COLORS, Permission type, hasPermission()
+  hooks/
+    useStore.ts         # Unified store fetch - checks ownership then team membership, returns {store, role, loading, isOwner}
+    useSubscription.ts  # Pro plan check and product count limits
+  pages/
+    dashboard/
+      TeamMembersPage.tsx     # Invite/manage team members (Pro-only, max 5)
+    InviteAccept.tsx           # Accept team invitation via token link
+  components/dashboard/
+    DashboardSidebar.tsx       # Now accepts `role` prop, filters menu items by permission
 supabase/
   functions/            # Edge Functions (hosted on Supabase, called via supabase.functions.invoke())
     initialize-payment/
@@ -31,7 +39,27 @@ supabase/
     create-subaccount/
     verify-domain/
   migrations/           # SQL schema (applied to Supabase project atmaningbrrrdfiajzcy)
+    20260417000001_team_roles.sql  # team_members, team_invitations, activity_log + RLS
 ```
+
+## Features Implemented
+
+### Verified Seller System
+- `verification_applications` table with RLS
+- `verification-documents` private storage bucket
+- VerificationPage (`/dashboard/verification`) - full ID + bank details form
+- VerifiedBadge component shown on storefront and product modals
+- DB trigger: auto-sets `stores.is_verified = true` when admin approves
+
+### Team Roles and Permissions
+- 5 roles: owner, admin, customer_support, operations, developer_support
+- Permission matrix in `src/lib/teamPermissions.ts`
+- `useStore` hook: checks ownership first, then team_members table - all dashboard pages use this
+- Team Members page at `/dashboard/team` (Pro-only, max 5 members)
+- Invite flow: owner generates a link -> invitee visits `/invite/:token` -> accepts -> added to team_members
+- Sidebar filters menu items based on role (e.g. developer_support only sees Dashboard + Settings)
+- BillingSection in StoreSettings is owner-only
+- AuthPage handles `?redirect=` param for post-login redirect (used by invite flow)
 
 ## Environment Variables
 Set in Replit shared environment:
