@@ -4,6 +4,7 @@ import { useStore } from "@/hooks/useStore";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardOverview from "@/components/dashboard/DashboardOverview";
+import FirstSalePanel from "@/components/dashboard/FirstSalePanel";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, LogOut } from "lucide-react";
 
@@ -53,6 +54,7 @@ const Dashboard = () => {
             </Button>
           </header>
           <main className="flex-1 p-6 bg-background">
+            <FirstSalePanel store={store} />
             <DashboardOverview store={store} />
           </main>
         </div>

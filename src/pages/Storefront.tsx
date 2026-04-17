@@ -76,12 +76,36 @@ const Storefront = () => {
         .eq("is_active", true)
         .order("created_at", { ascending: false });
 
-      setProducts(prods || []);
+      const productList = prods || [];
+      setProducts(productList);
       setLoading(false);
+
+      // Auto-open product from ?product= query param (deep link from share)
+      const productSlug = new URLSearchParams(window.location.search).get("product");
+      if (productSlug) {
+        const target = productList.find((p: any) => p.slug === productSlug);
+        if (target) {
+          setSelectedProduct(target);
+          trackProductView(target.id, storeData.id);
+        }
+      }
     };
 
     fetchStore();
   }, [slug]);
+
+  const trackProductView = async (productId: string, storeId: string) => {
+    try {
+      await supabase.from("product_views").insert({ product_id: productId, store_id: storeId });
+    } catch {
+      // Silently ignore - view tracking should never break the storefront
+    }
+  };
+
+  const openProduct = (product: any, storeId: string) => {
+    setSelectedProduct(product);
+    trackProductView(product.id, storeId);
+  };
 
   // Restore cart when navigating back from checkout
   useEffect(() => {
@@ -228,7 +252,7 @@ const Storefront = () => {
                 <div
                   key={product.id}
                   className="group cursor-pointer rounded-2xl border border-border/60 bg-card overflow-hidden shadow-card hover:shadow-card-hover transition-all"
-                  onClick={() => { setSelectedProduct(product); }}
+                  onClick={() => { openProduct(product, store.id); }}
                 >
                   <div className="relative aspect-square bg-muted">
                     {mainImage ? (

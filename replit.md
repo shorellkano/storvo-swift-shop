@@ -51,6 +51,16 @@ supabase/
 - VerifiedBadge component shown on storefront and product modals
 - DB trigger: auto-sets `stores.is_verified = true` when admin approves
 
+### First Sale System
+- `product_views` table: anonymous inserts for click tracking; store owners can read their own views
+- `FirstSalePanel` component: shown on Dashboard when seller has products; hides when first order detected
+  - Progress stats: Product Clicks (from product_views), Orders, Revenue
+  - Share panel: Copy link, WhatsApp (auto-checks checklist), Instagram (copies link), Facebook, Snapchat, Download Status Image (canvas-generated PNG)
+  - First Sale Checklist: 4 items, persisted in localStorage keyed by store_id
+  - Celebration dialog: triggers on first order, shown once (localStorage flag)
+- Storefront: tracks view per product click via `product_views` insert; supports `?product=slug` deep links to auto-open a product modal
+- Product share URL format: `${origin}/store/${store.slug}?product=${product.slug}`
+
 ### Agency Partner Program
 - `agency_applications` - anyone can apply (no login required, but user_id linked if logged in)
 - `agencies` - approved partners with unique slug (referral code), commission_rate, total_earnings
