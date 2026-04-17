@@ -25,6 +25,9 @@ import GrowthToolsPage from "./pages/dashboard/GrowthToolsPage";
 import OffersPage from "./pages/dashboard/OffersPage";
 import AgencyApply from "./pages/AgencyApply";
 import AgencyDashboard from "./pages/agency/AgencyDashboard";
+import Partners from "./pages/Partners";
+import AffiliateRef from "./pages/AffiliateRef";
+import AffiliateDashboard from "./pages/affiliate/AffiliateDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,6 +62,9 @@ const App = () => (
             <Route path="/legal" element={<Legal />} />
             <Route path="/agency/apply" element={<AgencyApply />} />
             <Route path="/agency/dashboard" element={<AgencyDashboard />} />
+            <Route path="/partners" element={<Partners />} />
+            <Route path="/ref/:username" element={<AffiliateRef />} />
+            <Route path="/affiliate/dashboard" element={<AffiliateDashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

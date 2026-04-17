@@ -61,6 +61,18 @@ supabase/
 - Storefront: tracks view per product click via `product_views` insert; supports `?product=slug` deep links to auto-open a product modal
 - Product share URL format: `${origin}/store/${store.slug}?product=${product.slug}`
 
+### Creator Rewards / Affiliate Program
+- **Public signup page**: `/partners` - collects name, email, username (becomes ref code), social handle, platform, bank details
+- **Referral link format**: `storvo.co/ref/{username}` - handled by `/ref/:username` route (AffiliateRef.tsx)
+  - Records click in `affiliate_clicks`, sets `storvo_ref` cookie (30 days) + sessionStorage fallback, redirects to `/auth?mode=signup&ref=username`
+- **Auth integration**: AuthPage reads `?ref=` param + cookie, stores in sessionStorage. Optional "Referral Code" field on signup form.
+- **StoreSetup attribution**: After store creation, reads sessionStorage `storvo_ref`, looks up affiliate, checks self-referral prevention, creates `affiliate_referrals` record + gives 7-day Pro trial
+- **Webhook commission**: `paystack-webhook` auto-records `affiliate_commissions` (30% = ₦1,050) on each Pro payment within 12-month window. UNIQUE(referral_id, period_month) prevents duplicates.
+- **Affiliate dashboard**: `/affiliate/dashboard` - shows referral link, clicks, signups, Pro users, monthly/total earnings, payout requests
+- **Payout**: Min ₦50,000. Affiliates click "Request Payout" - creates `affiliate_payouts` record. Status: pending/processing/paid
+- **Security**: Self-referral check by email, duplicate commission prevented by DB UNIQUE constraint, commissions only after real Paystack payments
+- **Migration**: `20260417000007_affiliate_program.sql` - tables: affiliates, affiliate_clicks, affiliate_referrals, affiliate_commissions, affiliate_payouts
+
 ### Social Commerce Mode
 - Auto-detected via `document.referrer` (checks instagram.com, tiktok.com, facebook.com, snapchat.com, wa.me, t.co, twitter.com, x.com, telegram.org, pinterest.com, youtube.com)
 - Fallback: URL params `?ref=` or `?utm_source=` mapped via REF_MAP (e.g. `?ref=ig`, `?ref=fb`, `?ref=wa`)

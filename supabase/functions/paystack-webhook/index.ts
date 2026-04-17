@@ -85,6 +85,80 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Pro subscription activated for store ${storeId}, ref: ${reference}`);
+
+    // --- Affiliate Commission Logic ---
+    try {
+      // Get store's owner user_id
+      const { data: storeRow } = await supabase
+        .from("stores")
+        .select("user_id")
+        .eq("id", storeId)
+        .maybeSingle();
+
+      if (storeRow?.user_id) {
+        const userId = storeRow.user_id;
+
+        // Find affiliate referral for this seller
+        const { data: referral } = await supabase
+          .from("affiliate_referrals")
+          .select("id, affiliate_id, signup_date")
+          .eq("referred_user_id", userId)
+          .maybeSingle();
+
+        if (referral && referral.affiliate_id) {
+          // Check within 12-month commission window
+          const signupDate = new Date(referral.signup_date);
+          const windowEnd = new Date(signupDate);
+          windowEnd.setFullYear(windowEnd.getFullYear() + 1);
+
+          if (now <= windowEnd) {
+            // Get affiliate commission rate
+            const { data: affiliate } = await supabase
+              .from("affiliates")
+              .select("commission_rate")
+              .eq("id", referral.affiliate_id)
+              .maybeSingle();
+
+            const commissionRate = affiliate?.commission_rate ?? 30;
+            const subscriptionFee = 3500;
+            const commissionAmount = Math.round((subscriptionFee * commissionRate) / 100);
+
+            // Period month = first day of current month
+            const periodMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+
+            // Insert commission (UNIQUE on referral_id + period_month prevents duplicates)
+            const { error: commissionErr } = await supabase
+              .from("affiliate_commissions")
+              .insert({
+                affiliate_id: referral.affiliate_id,
+                referral_id: referral.id,
+                seller_id: userId,
+                subscription_store_id: storeId,
+                commission_amount: commissionAmount,
+                period_month: periodMonth,
+                status: "pending",
+              });
+
+            if (!commissionErr) {
+              // Mark referral as converted to Pro (if not already)
+              await supabase
+                .from("affiliate_referrals")
+                .update({ converted_to_pro: true, converted_at: now.toISOString() })
+                .eq("id", referral.id)
+                .is("converted_at", null);
+
+              console.log(`Affiliate commission of ₦${commissionAmount} recorded for affiliate ${referral.affiliate_id}`);
+            } else if (!commissionErr.message?.includes("unique")) {
+              console.error("Commission insert error:", commissionErr.message);
+            }
+          }
+        }
+      }
+    } catch (commErr) {
+      // Commission errors must not fail the main subscription webhook
+      console.error("Affiliate commission error:", commErr);
+    }
+
     return new Response("OK", { status: 200 });
   } catch (error) {
     console.error("Webhook error:", error);

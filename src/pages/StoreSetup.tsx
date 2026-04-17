@@ -168,6 +168,48 @@ const StoreSetup = () => {
           }
           sessionStorage.removeItem("storvo_partner");
         }
+
+        // Link affiliate referral (Creator Rewards)
+        const affiliateRef = sessionStorage.getItem("storvo_ref");
+        if (affiliateRef && user) {
+          const { data: affiliateData } = await supabase
+            .from("affiliates")
+            .select("id, email, commission_rate")
+            .eq("username", affiliateRef.toLowerCase().trim())
+            .eq("status", "active")
+            .maybeSingle();
+
+          if (affiliateData) {
+            // Prevent self-referral
+            const isSelfReferral = affiliateData.email?.toLowerCase() === user.email?.toLowerCase();
+            if (!isSelfReferral) {
+              // Create referral record
+              const { error: refErr } = await supabase.from("affiliate_referrals").insert({
+                affiliate_id: affiliateData.id,
+                referred_user_id: user.id,
+                referral_username: affiliateRef.toLowerCase().trim(),
+                has_trial: true,
+              } as any);
+
+              if (!refErr) {
+                // Give 7-day Pro trial
+                const trialEnd = new Date();
+                trialEnd.setDate(trialEnd.getDate() + 7);
+                await supabase.from("subscriptions").upsert({
+                  store_id: store.id,
+                  plan: "pro",
+                  is_active: true,
+                  started_at: new Date().toISOString(),
+                  expires_at: trialEnd.toISOString(),
+                  updated_at: new Date().toISOString(),
+                }, { onConflict: "store_id" });
+              }
+            }
+          }
+          sessionStorage.removeItem("storvo_ref");
+          // Also clear the cookie
+          document.cookie = "storvo_ref=; max-age=0; path=/";
+        }
       }
 
       toast.success("Store created! Now let's brand it.");

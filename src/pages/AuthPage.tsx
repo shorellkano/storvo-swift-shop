@@ -21,10 +21,22 @@ const AuthPage = () => {
     sessionStorage.setItem("storvo_partner", partnerSlug);
   }
 
+  // Read referral code from URL or cookie fallback
+  const refParam = params.get("ref");
+  if (refParam) { sessionStorage.setItem("storvo_ref", refParam); }
+  else {
+    const cookieRef = document.cookie.split(";").find((c) => c.trim().startsWith("storvo_ref="));
+    if (cookieRef) {
+      const val = cookieRef.trim().split("=")[1];
+      if (val) sessionStorage.setItem("storvo_ref", val);
+    }
+  }
+
   const [isLogin, setIsLogin] = useState(defaultMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [referralCode, setReferralCode] = useState(refParam || "");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
@@ -103,6 +115,11 @@ const AuthPage = () => {
           },
         });
         if (error) throw error;
+
+        // Save referral code so StoreSetup can pick it up
+        if (referralCode.trim()) {
+          sessionStorage.setItem("storvo_ref", referralCode.trim().toLowerCase());
+        }
 
         if (data.user && !data.session) {
           setPendingConfirmEmail(email);
@@ -198,6 +215,23 @@ const AuthPage = () => {
               </button>
             </div>
           </div>
+
+          {!isLogin && (
+            <div>
+              <Label htmlFor="referralCode">
+                Referral Code
+                <span className="ml-2 text-xs text-muted-foreground">(optional)</span>
+              </Label>
+              <Input
+                id="referralCode"
+                type="text"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value)}
+                placeholder="e.g. ada"
+                data-testid="input-referral-code"
+              />
+            </div>
+          )}
 
           <Button
             variant="hero"
