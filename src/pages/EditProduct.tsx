@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/hooks/useStore";
@@ -9,11 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Crown, X, UploadCloud } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { useSubscription, FREE_IMAGE_LIMIT, PRO_IMAGE_LIMIT } from "@/hooks/useSubscription";
 import DraggableImageUpload from "@/components/product/DraggableImageUpload";
+import UpgradeModal from "@/components/dashboard/UpgradeModal";
 
 const EditProduct = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,8 +22,12 @@ const EditProduct = () => {
   const { store, role, loading: storeLoading } = useStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [allImages, setAllImages] = useState<{ id: string; preview: string; file?: File; isExisting?: boolean; originalId?: string }[]>([]);
   const [originalExistingIds, setOriginalExistingIds] = useState<string[]>([]);
+  const [existingVideos, setExistingVideos] = useState<{ id: string; video_url: string; display_order: number }[]>([]);
+  const [uploadVideos, setUploadVideos] = useState<{ id: string; name: string; file: File; preview: string }[]>([]);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -33,6 +38,8 @@ const EditProduct = () => {
     stockQuantity: 0,
     digitalFileUrl: "",
     isActive: true,
+    isNegotiable: false,
+    allowMediaDownload: false,
   });
 
   useEffect(() => {
@@ -57,6 +64,8 @@ const EditProduct = () => {
         stockQuantity: product.stock_quantity || 0,
         digitalFileUrl: product.digital_file_url || "",
         isActive: product.is_active,
+        isNegotiable: (product as any).is_negotiable || false,
+        allowMediaDownload: (product as any).allow_media_download || false,
       });
 
       const sorted = (product.product_images || []).sort((a: any, b: any) => a.display_order - b.display_order);
@@ -67,6 +76,14 @@ const EditProduct = () => {
         originalId: img.id,
       })));
       setOriginalExistingIds(sorted.map((img: any) => img.id));
+
+      const { data: vids } = await supabase
+        .from("product_videos")
+        .select("*")
+        .eq("product_id", id)
+        .order("display_order");
+      setExistingVideos(vids || []);
+
       setLoading(false);
     };
 
@@ -75,9 +92,37 @@ const EditProduct = () => {
 
   const { isPro } = useSubscription(store?.id || null);
   const maxImages = isPro ? PRO_IMAGE_LIMIT : FREE_IMAGE_LIMIT;
+  const maxVideos = isPro ? 4 : 1;
+  const totalVideos = existingVideos.length + uploadVideos.length;
 
   const generateSlug = (name: string) =>
     name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const remaining = maxVideos - totalVideos;
+    const toAdd = files.slice(0, remaining);
+    const newVideos = toAdd.map((file) => ({
+      id: `${Date.now()}_${file.name}`,
+      name: file.name,
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+    setUploadVideos((prev) => [...prev, ...newVideos]);
+    e.target.value = "";
+  };
+
+  const removeExistingVideo = async (videoId: string) => {
+    const vid = existingVideos.find((v) => v.id === videoId);
+    if (vid) {
+      const path = vid.video_url.split("/product-videos/")[1];
+      if (path) await supabase.storage.from("product-videos").remove([path]);
+      await supabase.from("product_videos").delete().eq("id", videoId);
+      setExistingVideos((prev) => prev.filter((v) => v.id !== videoId));
+    }
+  };
+
+  const removeNewVideo = (id: string) => setUploadVideos((prev) => prev.filter((v) => v.id !== id));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,16 +142,16 @@ const EditProduct = () => {
           stock_quantity: form.trackInventory ? form.stockQuantity : 0,
           digital_file_url: form.productType === "digital" ? form.digitalFileUrl : null,
           is_active: form.isActive,
-        })
+          is_negotiable: form.isNegotiable,
+          allow_media_download: isPro ? form.allowMediaDownload : false,
+        } as any)
         .eq("id", id);
 
       if (error) throw error;
 
-      // Determine which existing images were removed
       const currentExistingIds = allImages.filter(img => img.isExisting).map(img => img.originalId!);
       const removedIds = originalExistingIds.filter(id => !currentExistingIds.includes(id));
 
-      // Remove deleted images
       for (const imgId of removedIds) {
         const { data: imgData } = await supabase.from("product_images").select("image_url").eq("id", imgId).single();
         if (imgData) {
@@ -116,37 +161,32 @@ const EditProduct = () => {
         }
       }
 
-      // Update display_order for remaining existing images
       const existingInOrder = allImages.filter(img => img.isExisting);
       for (let i = 0; i < existingInOrder.length; i++) {
         await supabase.from("product_images").update({ display_order: allImages.indexOf(existingInOrder[i]) }).eq("id", existingInOrder[i].originalId!);
       }
 
-      // Upload new images
       const newItems = allImages.filter(img => !img.isExisting && img.file);
       await Promise.all(newItems.map(async (img) => {
         const i = allImages.indexOf(img);
         const fileExt = img.file!.name.split(".").pop();
         const filePath = `${store.id}/${id}/${Date.now()}_${i}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("product-images")
-          .upload(filePath, img.file!);
-
+        const { error: uploadError } = await supabase.storage.from("product-images").upload(filePath, img.file!);
         if (uploadError) { console.error(uploadError); return; }
-
-        const { data: { publicUrl } } = supabase.storage
-          .from("product-images")
-          .getPublicUrl(filePath);
-
-        await supabase.from("product_images").insert({
-          product_id: id,
-          image_url: publicUrl,
-          display_order: i,
-        });
+        const { data: { publicUrl } } = supabase.storage.from("product-images").getPublicUrl(filePath);
+        await supabase.from("product_images").insert({ product_id: id, image_url: publicUrl, display_order: i });
       }));
 
-      toast.success("Product updated! ✨");
+      await Promise.all(uploadVideos.map(async (vid, i) => {
+        const fileExt = vid.file.name.split(".").pop() || "mp4";
+        const filePath = `${store.id}/${id}/${Date.now()}_${i}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from("product-videos").upload(filePath, vid.file);
+        if (uploadError) { console.error(uploadError); return; }
+        const { data: { publicUrl } } = supabase.storage.from("product-videos").getPublicUrl(filePath);
+        await supabase.from("product_videos").insert({ product_id: id, store_id: store.id, video_url: publicUrl, display_order: allImages.length + existingVideos.length + i });
+      }));
+
+      toast.success("Product updated!");
       navigate("/dashboard/products");
     } catch (err: any) {
       toast.error(err.message);
@@ -162,7 +202,6 @@ const EditProduct = () => {
       </div>
     );
   }
-
 
   return (
     <SidebarProvider>
@@ -277,13 +316,91 @@ const EditProduct = () => {
                   </div>
                 )}
 
-                {/* Images */}
                 <DraggableImageUpload
                   images={allImages}
                   onChange={setAllImages}
                   maxImages={maxImages}
                   isPro={isPro}
                 />
+
+                {/* Video Management */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Product Videos</Label>
+                    <span className="text-xs text-muted-foreground">{totalVideos}/{maxVideos}</span>
+                  </div>
+
+                  {existingVideos.map((vid) => (
+                    <div key={vid.id} className="flex items-center gap-3 rounded-lg bg-muted/50 p-2 mb-2">
+                      <video src={vid.video_url} className="h-10 w-16 rounded object-cover" />
+                      <span className="flex-1 text-sm text-foreground truncate">Video {vid.display_order + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeExistingVideo(vid.id)}
+                        className="rounded-full p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {uploadVideos.map((vid) => (
+                    <div key={vid.id} className="flex items-center gap-3 rounded-lg bg-muted/50 p-2 mb-2">
+                      <video src={vid.preview} className="h-10 w-16 rounded object-cover" />
+                      <span className="flex-1 text-sm text-foreground truncate">{vid.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeNewVideo(vid.id)}
+                        className="rounded-full p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {totalVideos < maxVideos && (
+                    <>
+                      <input ref={videoInputRef} type="file" accept="video/*" multiple className="hidden" onChange={handleVideoSelect} />
+                      <button
+                        type="button"
+                        onClick={() => videoInputRef.current?.click()}
+                        className="w-full rounded-xl border-2 border-dashed border-border/60 bg-muted/30 p-4 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                      >
+                        <UploadCloud className="h-5 w-5" /> Add Video
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Negotiation & Download Settings */}
+                <div className="rounded-xl bg-muted/50 p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="isNegotiable" className="cursor-pointer">Price is Negotiable</Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">Buyers can make a price offer</p>
+                    </div>
+                    <Switch
+                      id="isNegotiable"
+                      checked={form.isNegotiable}
+                      onCheckedChange={(v) => setForm({ ...form, isNegotiable: v })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="allowDownload" className={!isPro ? "text-muted-foreground cursor-not-allowed" : "cursor-pointer"}>
+                        Allow Media Download {!isPro && <Crown className="inline h-3.5 w-3.5 text-amber-500 ml-1" />}
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">Buyers can save photos and videos</p>
+                    </div>
+                    <Switch
+                      id="allowDownload"
+                      checked={isPro ? form.allowMediaDownload : false}
+                      onCheckedChange={(v) => isPro ? setForm({ ...form, allowMediaDownload: v }) : setShowUpgrade(true)}
+                      disabled={!isPro}
+                    />
+                  </div>
+                </div>
 
                 <Button variant="hero" size="lg" className="w-full" disabled={saving}>
                   {saving ? "Saving..." : "Save Changes"}
@@ -293,6 +410,7 @@ const EditProduct = () => {
           </main>
         </div>
       </div>
+      <UpgradeModal open={showUpgrade} onOpenChange={setShowUpgrade} storeId={store?.id || null} />
     </SidebarProvider>
   );
 };

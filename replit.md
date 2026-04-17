@@ -61,6 +61,31 @@ supabase/
 - Storefront: tracks view per product click via `product_views` insert; supports `?product=slug` deep links to auto-open a product modal
 - Product share URL format: `${origin}/store/${store.slug}?product=${product.slug}`
 
+### Media Commerce System (migration: 20260417000006_media_commerce.sql)
+- `product_videos` table: video files per product (video_url, display_order), public read, owner insert/delete
+  - Storage bucket: `product-videos` (public)
+- `price_offers` table: buyer negotiation offers (buyer_name, buyer_phone, offered_price, message, status, counter_price, seller_note)
+  - Status values: pending, accepted, rejected, countered
+  - Public insert (no auth needed), owner can read/update
+- `products` table: new columns `is_negotiable` (bool) and `allow_media_download` (bool)
+- **ProductImageCarousel** upgraded to `ProductMediaCarousel` - handles both images and videos in unified sorted carousel
+  - Video items render with HTML5 `<video controls>` + "Video" badge overlay
+  - Optional `allowDownload` prop shows Download button on images/videos; fullscreen has Save button
+- **AddProduct + EditProduct**: `is_negotiable` toggle (anyone), `allow_media_download` (Pro only), video upload section (1 free / 4 Pro)
+- **Storefront** changes:
+  - Product cards show "Negotiable" badge and "Video" tag when applicable
+  - Product modal: "Make Offer" button shown when `is_negotiable`, opens offer form (name, phone, offered price, message)
+  - Offer is submitted to `price_offers`; success state shown in modal
+  - Copy Link button in product modal (product deep link)
+  - OG tags updated per-product when modal opens
+  - Storefront fetches `product_videos` alongside `product_images`
+  - "Sell with Storvo" footer badge (free plan only) with CTA to start a store
+- **OffersPage** (`/dashboard/offers`): lists all price offers sorted by date, shows pending count badge
+  - Click an offer to open dialog: Accept / Reject / Counter (with counter price + seller note)
+  - WhatsApp button on each offer generates contextual message based on status
+  - Accepted/countered offers show "Message Buyer on WhatsApp" in dialog
+- Sidebar: Offers item added (handshake icon, visible to anyone with orders.view permission)
+
 ### Agency Partner Program
 - `agency_applications` - anyone can apply (no login required, but user_id linked if logged in)
 - `agencies` - approved partners with unique slug (referral code), commission_rate, total_earnings

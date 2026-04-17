@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/hooks/useStore";
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ArrowLeft, Crown } from "lucide-react";
+import { ArrowLeft, Crown, Video, X, UploadCloud } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import PostUploadSuccess from "@/components/dashboard/PostUploadSuccess";
@@ -25,9 +25,11 @@ const AddProduct = () => {
   const { store, role, loading: storeLoading } = useStore();
   const [loading, setLoading] = useState(false);
   const [uploadImages, setUploadImages] = useState<{ id: string; preview: string; file?: File }[]>([]);
+  const [uploadVideos, setUploadVideos] = useState<{ id: string; name: string; file: File; preview: string }[]>([]);
   const [createdProduct, setCreatedProduct] = useState<{ id: string; name: string } | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [existingProducts, setExistingProducts] = useState<any[]>([]);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const { canAddProduct, productCount, isPro, refetch } = useSubscription(store?.id || null);
 
@@ -39,6 +41,8 @@ const AddProduct = () => {
     trackInventory: false,
     stockQuantity: 0,
     digitalFileUrl: "",
+    isNegotiable: false,
+    allowMediaDownload: false,
   });
 
   useEffect(() => {
@@ -53,6 +57,7 @@ const AddProduct = () => {
   }, [store?.id]);
 
   const maxImages = isPro ? PRO_IMAGE_LIMIT : FREE_IMAGE_LIMIT;
+  const maxVideos = isPro ? 4 : 1;
 
   const generateSlug = (name: string) =>
     name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -66,10 +71,31 @@ const AddProduct = () => {
       trackInventory: false,
       stockQuantity: 0,
       digitalFileUrl: "",
+      isNegotiable: false,
+      allowMediaDownload: false,
     });
     setUploadImages([]);
+    setUploadVideos([]);
     setCreatedProduct(null);
     refetch();
+  };
+
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const remaining = maxVideos - uploadVideos.length;
+    const toAdd = files.slice(0, remaining);
+    const newVideos = toAdd.map((file) => ({
+      id: `${Date.now()}_${file.name}`,
+      name: file.name,
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+    setUploadVideos((prev) => [...prev, ...newVideos]);
+    e.target.value = "";
+  };
+
+  const removeVideo = (id: string) => {
+    setUploadVideos((prev) => prev.filter((v) => v.id !== id));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,13 +118,15 @@ const AddProduct = () => {
           store_id: store.id,
           name: form.name,
           slug,
-          price: parseFloat(form.price),
+          price: parseFloat(form.price) || 0,
           description: form.description,
           product_type: form.productType,
           track_inventory: form.trackInventory,
           stock_quantity: form.trackInventory ? form.stockQuantity : 0,
           digital_file_url: form.productType === "digital" ? form.digitalFileUrl : null,
-        })
+          is_negotiable: form.isNegotiable,
+          allow_media_download: isPro ? form.allowMediaDownload : false,
+        } as any)
         .select()
         .single();
 
@@ -108,22 +136,19 @@ const AddProduct = () => {
         if (!img.file) return;
         const fileExt = img.file.name.split(".").pop();
         const filePath = `${store.id}/${product.id}/${i}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("product-images")
-          .upload(filePath, img.file);
-
+        const { error: uploadError } = await supabase.storage.from("product-images").upload(filePath, img.file);
         if (uploadError) { console.error("Upload error:", uploadError); return; }
+        const { data: { publicUrl } } = supabase.storage.from("product-images").getPublicUrl(filePath);
+        await supabase.from("product_images").insert({ product_id: product.id, image_url: publicUrl, display_order: i });
+      }));
 
-        const { data: { publicUrl } } = supabase.storage
-          .from("product-images")
-          .getPublicUrl(filePath);
-
-        await supabase.from("product_images").insert({
-          product_id: product.id,
-          image_url: publicUrl,
-          display_order: i,
-        });
+      await Promise.all(uploadVideos.map(async (vid, i) => {
+        const fileExt = vid.file.name.split(".").pop() || "mp4";
+        const filePath = `${store.id}/${product.id}/${Date.now()}_${i}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage.from("product-videos").upload(filePath, vid.file);
+        if (uploadError) { console.error("Video upload error:", uploadError); return; }
+        const { data: { publicUrl } } = supabase.storage.from("product-videos").getPublicUrl(filePath);
+        await supabase.from("product_videos").insert({ product_id: product.id, store_id: store.id, video_url: publicUrl, display_order: uploadImages.length + i });
       }));
 
       setCreatedProduct({ id: product.id, name: product.name });
@@ -136,7 +161,6 @@ const AddProduct = () => {
 
   if (!store) return null;
 
-  // Show success screen after creation
   if (createdProduct) {
     return (
       <SidebarProvider>
@@ -161,7 +185,6 @@ const AddProduct = () => {
     );
   }
 
-  // Show limit reached screen
   if (!canAddProduct) {
     return (
       <SidebarProvider>
@@ -177,9 +200,7 @@ const AddProduct = () => {
                 <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-accent">
                   <Crown className="h-8 w-8 text-accent-foreground" />
                 </div>
-                <h2 className="font-display text-xl font-bold text-foreground">
-                  Free plan limit reached
-                </h2>
+                <h2 className="font-display text-xl font-bold text-foreground">Free plan limit reached</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
                   You've added {productCount} of {FREE_PRODUCT_LIMIT} products on the Free plan. Upgrade to Pro to add unlimited products.
                 </p>
@@ -215,19 +236,14 @@ const AddProduct = () => {
             </Button>
 
             <div className={`${isMobile ? '' : 'grid grid-cols-5 gap-6'}`}>
-              {/* Product Form */}
               <div className={isMobile ? '' : 'col-span-3'}>
                 <div className="rounded-2xl border border-border/60 bg-card p-6 sm:p-8 shadow-card">
-                  {/* Product count indicator */}
                   {!isPro && (
                     <div className="mb-5 flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
                       <span className="text-xs text-muted-foreground">
                         {productCount} of {FREE_PRODUCT_LIMIT} products used (Free plan)
                       </span>
-                      <button
-                        onClick={() => setShowUpgrade(true)}
-                        className="text-xs font-medium text-primary hover:underline"
-                      >
+                      <button onClick={() => setShowUpgrade(true)} className="text-xs font-medium text-primary hover:underline">
                         Upgrade
                       </button>
                     </div>
@@ -332,6 +348,92 @@ const AddProduct = () => {
                       isPro={isPro}
                     />
 
+                    {/* Video Upload */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label>Product Videos</Label>
+                        <span className="text-xs text-muted-foreground">
+                          {uploadVideos.length}/{maxVideos} {!isPro && "(1 on Free plan)"}
+                        </span>
+                      </div>
+
+                      {uploadVideos.length > 0 && (
+                        <div className="space-y-2 mb-3">
+                          {uploadVideos.map((vid) => (
+                            <div key={vid.id} className="flex items-center gap-3 rounded-lg bg-muted/50 p-2">
+                              <video src={vid.preview} className="h-10 w-16 rounded object-cover" />
+                              <span className="flex-1 text-sm text-foreground truncate">{vid.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => removeVideo(vid.id)}
+                                className="rounded-full p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {uploadVideos.length < maxVideos && (
+                        <>
+                          <input
+                            ref={videoInputRef}
+                            type="file"
+                            accept="video/*"
+                            multiple
+                            className="hidden"
+                            onChange={handleVideoSelect}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => videoInputRef.current?.click()}
+                            className="w-full rounded-xl border-2 border-dashed border-border/60 bg-muted/30 p-4 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                          >
+                            <UploadCloud className="h-5 w-5" />
+                            Add Video {!isPro && <span className="text-xs">(1 video on Free plan)</span>}
+                          </button>
+                        </>
+                      )}
+
+                      {!isPro && uploadVideos.length >= maxVideos && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Upgrade to Pro for up to 4 videos per product.{" "}
+                          <button type="button" onClick={() => setShowUpgrade(true)} className="text-primary hover:underline">Upgrade</button>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Negotiation Setting */}
+                    <div className="rounded-xl bg-muted/50 p-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="isNegotiable" className="cursor-pointer">Price is Negotiable</Label>
+                          <p className="text-xs text-muted-foreground mt-0.5">Buyers can make a price offer</p>
+                        </div>
+                        <Switch
+                          id="isNegotiable"
+                          checked={form.isNegotiable}
+                          onCheckedChange={(v) => setForm({ ...form, isNegotiable: v })}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="allowDownload" className={!isPro ? "text-muted-foreground cursor-not-allowed" : "cursor-pointer"}>
+                            Allow Media Download {!isPro && <Crown className="inline h-3.5 w-3.5 text-amber-500 ml-1" />}
+                          </Label>
+                          <p className="text-xs text-muted-foreground mt-0.5">Buyers can save your photos/videos</p>
+                        </div>
+                        <Switch
+                          id="allowDownload"
+                          checked={isPro ? form.allowMediaDownload : false}
+                          onCheckedChange={(v) => isPro ? setForm({ ...form, allowMediaDownload: v }) : setShowUpgrade(true)}
+                          disabled={!isPro}
+                        />
+                      </div>
+                    </div>
+
                     <Button variant="hero" size="lg" className="w-full" disabled={loading}>
                       {loading ? "Adding product..." : "Add Product"}
                     </Button>
@@ -339,7 +441,6 @@ const AddProduct = () => {
                 </div>
               </div>
 
-              {/* Live Store Preview - desktop only */}
               {!isMobile && (
                 <div className="col-span-2 sticky top-20 self-start">
                   <LiveStorePreview
