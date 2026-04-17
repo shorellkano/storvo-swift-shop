@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, CheckCircle, Download, ExternalLink, Lock } from "lucide-react";
+import { ArrowLeft, CheckCircle, Download, ExternalLink, Lock, MessageCircle, ReceiptText, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,7 +88,10 @@ const Checkout = () => {
     setDigitalItems(digital);
     setOrderNumber(orderNum);
     setOrderComplete(true);
-    toast.success("Order placed successfully! 🎉");
+    toast.success("Order placed successfully!");
+
+    // Send email notifications (non-blocking)
+    supabase.functions.invoke("send-order-email", { body: { orderId } }).catch(() => {});
   };
 
   const createOrderRecord = async () => {
@@ -201,22 +204,66 @@ const Checkout = () => {
   if (orderComplete) {
     const hasDigital = digitalItems.length > 0;
     const hasPhysical = cart.some((i: any) => i.product.product_type !== "digital");
+    const brandColor = store.brand_color || "#6366F1";
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
-        <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-8 shadow-card text-center">
-          <CheckCircle className="mx-auto h-16 w-16 text-emerald-500" />
-          <h1 className="mt-4 font-display text-2xl font-bold text-foreground">Order Confirmed! 🎉</h1>
-          <p className="mt-2 text-muted-foreground">
-            Your order <span className="font-semibold text-foreground">#{orderNumber}</span> has been placed.
-          </p>
+      <div className="min-h-screen bg-background px-4 py-10">
+        <div className="mx-auto max-w-md space-y-4">
+          {/* Confirmation header */}
+          <div className="rounded-2xl border border-border/60 bg-card p-8 shadow-card text-center">
+            <CheckCircle className="mx-auto h-16 w-16 text-emerald-500" />
+            <h1 className="mt-4 font-display text-2xl font-bold text-foreground">Order Confirmed!</h1>
+            <p className="mt-1 text-muted-foreground text-sm">{store.name}</p>
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-muted px-4 py-2">
+              <ReceiptText className="h-4 w-4 text-muted-foreground" />
+              <span className="font-mono font-semibold text-foreground">#{orderNumber}</span>
+            </div>
+            {form.email && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                Confirmation sent to <span className="font-medium">{form.email}</span>
+              </p>
+            )}
+          </div>
+
+          {/* Order items */}
+          <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-card">
+            <h2 className="mb-3 font-semibold text-foreground">Items Purchased</h2>
+            <div className="space-y-2">
+              {cart.map((item: any) => (
+                <div key={item.product.id} className="flex justify-between text-sm">
+                  <span className="text-foreground font-medium">
+                    {item.product.name} × {item.quantity}
+                    {item.product.product_type === "digital" && (
+                      <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">Digital</span>
+                    )}
+                  </span>
+                  <span className="text-muted-foreground">{formatCurrency(Number(item.product.price) * item.quantity)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 border-t border-border pt-3 space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span>{formatCurrency(cartTotal)}</span>
+              </div>
+              {deliveryFee > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Delivery</span>
+                  <span>{formatCurrency(deliveryFee)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-bold text-base pt-1">
+                <span>Total Paid</span>
+                <span style={{ color: brandColor }}>{formatCurrency(orderTotal)}</span>
+              </div>
+            </div>
+          </div>
 
           {/* Digital downloads */}
           {hasDigital && (
-            <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-left">
-              <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-emerald-800">
-                <Download className="h-4 w-4" />
-                Your downloads are ready
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 p-5">
+              <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-emerald-800 dark:text-emerald-400">
+                <Download className="h-4 w-4" /> Your downloads are ready
               </p>
               <div className="space-y-2">
                 {digitalItems.map((item, i) => (
@@ -225,41 +272,63 @@ const Checkout = () => {
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between rounded-lg bg-white border border-emerald-100 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 transition-colors"
+                    className="flex items-center justify-between rounded-xl bg-white dark:bg-emerald-900/20 border border-emerald-100 px-3 py-2.5 text-sm font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 transition-colors"
                   >
                     <span className="truncate">{item.name}</span>
                     <ExternalLink className="ml-2 h-3.5 w-3.5 shrink-0" />
                   </a>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-emerald-600">Save these links - they won't appear again.</p>
+              <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-500">Save these links - they won't appear again.</p>
             </div>
           )}
 
           {/* Physical delivery note */}
           {hasPhysical && (
-            <p className="mt-4 text-sm text-muted-foreground">
+            <div className="rounded-2xl border border-border/60 bg-card p-4 text-sm text-muted-foreground">
               The seller will contact you at <span className="font-medium text-foreground">{form.phone}</span> to arrange delivery.
-            </p>
+            </div>
           )}
 
-          {/* WhatsApp seller link */}
-          {store.whatsapp_number && (
-            <a
-              href={`https://wa.me/${store.whatsapp_number.replace(/\D/g, "")}?text=Hi! I just placed order %23${orderNumber} on your Storvo store.`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-              style={{ backgroundColor: "#25D366" }}
+          {/* Action buttons */}
+          <div className="space-y-3">
+            <Button
+              variant="hero"
+              size="lg"
+              className="w-full gap-2"
+              onClick={() => navigate(`/order/${orderNumber}`)}
+              data-testid="button-view-order"
             >
-              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.128.558 4.127 1.535 5.857L.057 23.885l6.195-1.447A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.007-1.373l-.36-.214-3.728.977.997-3.645-.234-.374A9.818 9.818 0 1112 21.818z"/></svg>
-              Message the seller
-            </a>
-          )}
+              <ReceiptText className="h-4 w-4" /> View Order Status
+            </Button>
 
-          <Button variant="hero" className="mt-6 w-full" onClick={() => navigate(`/store/${slug}`)}>
-            Back to Store
-          </Button>
+            {store.whatsapp_number && (
+              <Button
+                size="lg"
+                className="w-full gap-2 font-semibold"
+                style={{ background: "#25D366" }}
+                onClick={() =>
+                  window.open(
+                    `https://wa.me/${store.whatsapp_number.replace(/\D/g, "")}?text=Hi! I just placed order %23${orderNumber} on your Storvo store.`,
+                    "_blank"
+                  )
+                }
+                data-testid="button-whatsapp-seller"
+              >
+                <MessageCircle className="h-4 w-4" /> Contact Seller
+              </Button>
+            )}
+
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full gap-2"
+              onClick={() => navigate(`/store/${slug}`)}
+              data-testid="button-continue-shopping"
+            >
+              <ShoppingBag className="h-4 w-4" /> Continue Shopping
+            </Button>
+          </div>
         </div>
       </div>
     );
