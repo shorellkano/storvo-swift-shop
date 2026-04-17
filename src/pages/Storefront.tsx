@@ -213,7 +213,10 @@ const Storefront = () => {
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN" }).format(amount);
 
-  const productShareUrl = (product: any) => `${window.location.origin}/store/${slug}?product=${product.slug}`;
+  const productShareUrl = (product: any) =>
+    product.slug
+      ? `${window.location.origin}/store/${slug}/p/${product.slug}`
+      : `${window.location.origin}/store/${slug}`;
 
   const shareProduct = (product: any) => {
     const url = productShareUrl(product);

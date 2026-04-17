@@ -15,6 +15,8 @@ import {
   UsersRound,
   Rocket,
   HandshakeIcon,
+  Link2,
+  Layers,
 } from "lucide-react";
 import {
   Sidebar,
@@ -46,6 +48,8 @@ const ALL_MENU_ITEMS = [
   { title: "Products", url: "/dashboard/products", icon: Package, permission: "products.view" as const },
   { title: "Orders", url: "/dashboard/orders", icon: ShoppingCart, permission: "orders.view" as const },
   { title: "Customers", url: "/dashboard/customers", icon: Users, permission: "customers.view" as const },
+  { title: "Collections", url: "/dashboard/collections", icon: Layers, permission: "products.view" as const },
+  { title: "Links", url: "/dashboard/links", icon: Link2, permission: null },
   { title: "Analytics", url: "/dashboard/analytics", icon: BarChart3, permission: "analytics.view" as const },
   { title: "Offers", url: "/dashboard/offers", icon: HandshakeIcon, permission: "orders.view" as const },
   { title: "Growth Tools", url: "/dashboard/growth", icon: Rocket, permission: null, ownerOnly: true },

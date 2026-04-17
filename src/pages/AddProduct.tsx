@@ -27,7 +27,7 @@ const AddProduct = () => {
   const [loading, setLoading] = useState(false);
   const [uploadImages, setUploadImages] = useState<{ id: string; preview: string; file?: File }[]>([]);
   const [uploadVideos, setUploadVideos] = useState<{ id: string; name: string; file: File; preview: string }[]>([]);
-  const [createdProduct, setCreatedProduct] = useState<{ id: string; name: string } | null>(null);
+  const [createdProduct, setCreatedProduct] = useState<{ id: string; name: string; slug: string; price: number; imageUrl?: string } | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [existingProducts, setExistingProducts] = useState<any[]>([]);
   const [relatedProductIds, setRelatedProductIds] = useState<string[]>([]);
@@ -165,7 +165,14 @@ const AddProduct = () => {
         );
       }
 
-      setCreatedProduct({ id: product.id, name: product.name });
+      const firstImage = uploadImages[0]?.preview;
+      setCreatedProduct({
+        id: product.id,
+        name: product.name,
+        slug: product.slug || slug,
+        price: parseFloat(form.price) || 0,
+        imageUrl: firstImage,
+      });
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -189,6 +196,9 @@ const AddProduct = () => {
               <PostUploadSuccess
                 productName={createdProduct.name}
                 productId={createdProduct.id}
+                productSlug={createdProduct.slug}
+                productPrice={createdProduct.price}
+                productImageUrl={createdProduct.imageUrl}
                 storeSlug={store.slug}
                 onAddAnother={resetForm}
               />
