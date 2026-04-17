@@ -6,6 +6,7 @@ import { ArrowLeft, ShoppingCart, MessageCircle, Share2, Check, ZapIcon } from "
 import { toast } from "sonner";
 import SharePanel from "@/components/product/SharePanel";
 import CartDrawer from "@/components/storefront/CartDrawer";
+import ProductImageCarousel from "@/components/product/ProductImageCarousel";
 import { useCart } from "@/hooks/useCart";
 
 const formatCurrency = (n: number) =>
@@ -27,7 +28,6 @@ const ProductPage = () => {
   const [product, setProduct] = useState<any>(null);
   const [store, setStore] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [mediaIndex, setMediaIndex] = useState(0);
   const [addedToCart, setAddedToCart] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showCart, setShowCart] = useState(false);
@@ -111,10 +111,6 @@ const ProductPage = () => {
 
   const images = (product.product_images || []).sort((a: any, b: any) => a.display_order - b.display_order);
   const videos = (product.product_videos || []).sort((a: any, b: any) => a.display_order - b.display_order);
-  const allMedia = [
-    ...images.map((i: any) => ({ type: "image" as const, url: i.image_url })),
-    ...videos.map((v: any) => ({ type: "video" as const, url: v.video_url })),
-  ];
   const outOfStock = product.track_inventory && product.stock_quantity <= 0;
   const brandColor = store.brand_color || "#6366F1";
   const deliveryFee = store.delivery_fee ? Number(store.delivery_fee) : 0;
@@ -157,48 +153,13 @@ const ProductPage = () => {
       </div>
 
       <div className="mx-auto max-w-lg px-4 pb-28 pt-4 space-y-5">
-        {/* Media */}
-        {allMedia.length > 0 && (
-          <div className="space-y-2">
-            <div className="aspect-square w-full overflow-hidden rounded-2xl bg-muted">
-              {allMedia[mediaIndex].type === "image" ? (
-                <img
-                  src={allMedia[mediaIndex].url}
-                  alt={product.name}
-                  className="h-full w-full object-cover"
-                  data-testid="img-product-main"
-                />
-              ) : (
-                <video
-                  src={allMedia[mediaIndex].url}
-                  className="h-full w-full object-cover"
-                  controls
-                  playsInline
-                />
-              )}
-            </div>
-            {allMedia.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {allMedia.map((m, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setMediaIndex(i)}
-                    className={`h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition-colors ${
-                      i === mediaIndex ? "border-primary" : "border-border/60"
-                    }`}
-                    data-testid={`button-media-thumb-${i}`}
-                  >
-                    {m.type === "image" ? (
-                      <img src={m.url} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <video src={m.url} className="h-full w-full object-cover" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {/* Image carousel */}
+        <ProductImageCarousel
+          images={images}
+          videos={videos}
+          productName={product.name}
+          allowDownload={product.allow_media_download}
+        />
 
         {/* Product Info */}
         <div className="space-y-2">
