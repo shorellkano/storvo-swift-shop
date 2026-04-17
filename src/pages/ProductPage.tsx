@@ -222,40 +222,68 @@ const ProductPage = () => {
       </div>
 
       {/* Sticky action bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur-sm px-4 py-3 space-y-2">
+      <div
+        className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur-sm px-4 pt-3 pb-4 space-y-2.5"
+        style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+      >
+        {/* PRIMARY: Buy Now */}
         <Button
           size="lg"
-          className="w-full font-bold transition-all duration-150 active:scale-95 text-white"
+          className="w-full h-14 text-base font-bold tracking-wide transition-all duration-150 active:scale-[0.98] text-white shadow-md"
           style={{ background: outOfStock ? undefined : brandColor }}
           disabled={outOfStock}
           onClick={handleBuyNow}
           data-testid="button-buy-now"
         >
-          <ZapIcon className="mr-2 h-4 w-4" /> Buy Now - {formatCurrency(Number(product.price))}
+          <ZapIcon className="mr-2 h-5 w-5" />
+          {outOfStock ? "Out of Stock" : `Buy Now - ${formatCurrency(Number(product.price))}`}
         </Button>
-        <div className="grid grid-cols-2 gap-2">
+
+        {/* SECONDARY row: Add to Cart + optional Chat */}
+        <div className="flex gap-2">
           <Button
             variant="outline"
-            size="sm"
+            size="lg"
+            className="flex-1 h-12 font-semibold transition-all duration-150 active:scale-[0.98]"
+            style={
+              !outOfStock && cartCount > 0
+                ? { borderColor: brandColor, color: brandColor }
+                : {}
+            }
             disabled={outOfStock}
             onClick={handleAddToCart}
             data-testid="button-add-to-cart"
           >
             {addedToCart ? (
-              <><Check className="mr-2 h-4 w-4 text-emerald-500" /> Added!</>
+              <>
+                <Check className="mr-2 h-4 w-4 text-emerald-500" /> Added!
+              </>
             ) : (
-              <><ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart</>
+              <>
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Add to Cart
+                {cartCount > 0 && (
+                  <span
+                    className="ml-2 flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                    style={{ background: brandColor }}
+                  >
+                    {cartCount}
+                  </span>
+                )}
+              </>
             )}
           </Button>
+
           {store.whatsapp_number && (
             <Button
               variant="outline"
-              size="sm"
+              size="lg"
+              className="h-12 w-12 shrink-0 p-0"
               style={{ borderColor: "#25D366", color: "#25D366" }}
               onClick={openWhatsApp}
               data-testid="button-whatsapp"
             >
-              <MessageCircle className="mr-2 h-4 w-4" /> Chat
+              <MessageCircle className="h-5 w-5" />
             </Button>
           )}
         </div>

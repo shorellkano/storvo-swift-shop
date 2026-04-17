@@ -554,18 +554,8 @@ const Storefront = () => {
                       <div className="space-y-3 pt-2">
                         <Button
                           size="lg"
-                          className="w-full font-semibold transition-all duration-150 active:scale-95 text-white"
-                          style={{ background: brandColor }}
-                          disabled={outOfStock}
-                          onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}
-                        >
-                          <ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart
-                        </Button>
-                        <Button
-                          size="lg"
-                          variant="outline"
-                          className="w-full font-semibold transition-all duration-150 active:scale-95"
-                          style={{ borderColor: brandColor, color: brandColor }}
+                          className="w-full h-13 font-bold tracking-wide transition-all duration-150 active:scale-[0.98] text-white shadow-md"
+                          style={{ background: outOfStock ? undefined : brandColor }}
                           disabled={outOfStock}
                           onClick={() => {
                             const existing = cart.find(i => i.product.id === selectedProduct.id);
@@ -578,7 +568,25 @@ const Storefront = () => {
                             navigate(`/store/${slug}/checkout`, { state: { cart: newCart, store } });
                           }}
                         >
-                          Buy Now
+                          <Zap className="mr-2 h-4 w-4" /> Buy Now
+                        </Button>
+                        <Button
+                          size="lg"
+                          variant="outline"
+                          className="w-full font-semibold transition-all duration-150 active:scale-95"
+                          style={{ borderColor: brandColor, color: brandColor }}
+                          disabled={outOfStock}
+                          onClick={() => { hookAddToCart(selectedProduct); setSelectedProduct(null); toast.success(`${selectedProduct.name} added to cart`); }}
+                        >
+                          <ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart
+                          {cartCount > 0 && (
+                            <span
+                              className="ml-2 flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold text-white"
+                              style={{ background: brandColor }}
+                            >
+                              {cartCount}
+                            </span>
+                          )}
                         </Button>
                         {isNegotiable && (
                           <Button size="lg" variant="outline" className="w-full font-semibold" onClick={() => setShowOfferModal(true)}>
