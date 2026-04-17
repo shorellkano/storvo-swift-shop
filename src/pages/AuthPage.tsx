@@ -14,6 +14,12 @@ const AuthPage = () => {
   const params = new URLSearchParams(location.search);
   const defaultMode = params.get("mode") === "signup" ? false : true;
   const redirectTo = params.get("redirect") || "/dashboard";
+  const partnerSlug = params.get("partner");
+
+  // Save partner slug to sessionStorage so StoreSetup can pick it up on store creation
+  if (partnerSlug) {
+    sessionStorage.setItem("storvo_partner", partnerSlug);
+  }
 
   const [isLogin, setIsLogin] = useState(defaultMode);
   const [email, setEmail] = useState("");

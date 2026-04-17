@@ -148,6 +148,26 @@ const StoreSetup = () => {
       if (store) {
         setCreatedStoreId(store.id);
         setCreatedStoreSlug(slug);
+
+        // Link agency referral if the user came via a partner referral link
+        const partnerSlug = sessionStorage.getItem("storvo_partner");
+        if (partnerSlug) {
+          const { data: agencyData } = await supabase
+            .from("agencies")
+            .select("id")
+            .eq("slug", partnerSlug)
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (agencyData) {
+            await supabase.from("agency_referrals").insert({
+              agency_id: agencyData.id,
+              store_id: store.id,
+              referred_via: "link",
+            });
+          }
+          sessionStorage.removeItem("storvo_partner");
+        }
       }
 
       toast.success("Store created! Now let's brand it.");

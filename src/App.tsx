@@ -21,6 +21,8 @@ import Storefront from "./pages/Storefront";
 import Checkout from "./pages/Checkout";
 import ResetPassword from "./pages/ResetPassword";
 import Legal from "./pages/Legal";
+import AgencyApply from "./pages/AgencyApply";
+import AgencyDashboard from "./pages/agency/AgencyDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +53,8 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/legal/:page" element={<Legal />} />
             <Route path="/legal" element={<Legal />} />
+            <Route path="/agency/apply" element={<AgencyApply />} />
+            <Route path="/agency/dashboard" element={<AgencyDashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

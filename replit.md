@@ -51,6 +51,16 @@ supabase/
 - VerifiedBadge component shown on storefront and product modals
 - DB trigger: auto-sets `stores.is_verified = true` when admin approves
 
+### Agency Partner Program
+- `agency_applications` - anyone can apply (no login required, but user_id linked if logged in)
+- `agencies` - approved partners with unique slug (referral code), commission_rate, total_earnings
+- `agency_referrals` - links a store to the agency that referred it (UNIQUE on store_id)
+- `agency_commissions` - auto-generated via Postgres trigger when a referred store upgrades to Pro
+- `/agency/apply` - public application form (AgencyApply.tsx)
+- `/agency/dashboard` - tabbed agency dashboard: Overview, My Clients, Earnings, Referral Links (AgencyDashboard.tsx)
+- Referral flow: partner link `?partner=slug` -> sessionStorage saves slug -> StoreSetup links agency_referral on store creation
+- Commission trigger: `handle_pro_subscription_commission()` fires on subscriptions INSERT/UPDATE, inserts commission + updates agency.total_earnings
+
 ### Team Roles and Permissions
 - 5 roles: owner, admin, customer_support, operations, developer_support
 - Permission matrix in `src/lib/teamPermissions.ts`
