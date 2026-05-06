@@ -32,6 +32,8 @@ import ProductPage from "./pages/ProductPage";
 import CollectionPage from "./pages/CollectionPage";
 import LinksPage from "./pages/dashboard/LinksPage";
 import CollectionsPage from "./pages/dashboard/CollectionsPage";
+import CustomersPage from "./pages/dashboard/CustomersPage";
+import AnalyticsPage from "./pages/dashboard/AnalyticsPage";
 import OrderStatus from "./pages/OrderStatus";
 import NotFound from "./pages/NotFound";
 
@@ -66,6 +68,8 @@ const App = () => (
             <Route path="/store/:slug/checkout" element={<Checkout />} />
             <Route path="/dashboard/links" element={<LinksPage />} />
             <Route path="/dashboard/collections" element={<CollectionsPage />} />
+            <Route path="/dashboard/customers" element={<CustomersPage />} />
+            <Route path="/dashboard/analytics" element={<AnalyticsPage />} />
             <Route path="/order/:orderNumber" element={<OrderStatus />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/legal/:page" element={<Legal />} />
