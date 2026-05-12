@@ -1,30 +1,28 @@
-# 1. Build Phase
-FROM oven/bun:latest AS build
+FROM oven/bun:latest
 
-# Pass keys from Coolify to Docker
+# 1. Set working directory
+WORKDIR /app
+
+# 2. Copy code
+COPY . .
+
+# 3. Define arguments for Coolify to pass
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
 
-# Make the keys available to the build command
-ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
-ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
-
-WORKDIR /app
-COPY . .
+# 4. Install dependencies
 RUN bun install
-RUN bun run build
 
-# 2. Deployment Phase
-FROM oven/bun:latest
-WORKDIR /app
+# 5. THE FORCE-FEED: Pass keys directly into the build command
+# This is the most reliable way to ensure Vite "bakes" them
+RUN VITE_SUPABASE_URL=${VITE_SUPABASE_URL} \
+    VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY} \
+    bun run build
 
-# Install the 'serve' tool globally
+# 6. Install server
 RUN bun add -g serve
-
-# Copy the built files from the build stage
-COPY --from=build /app/dist ./dist
 
 EXPOSE 3000
 
-# This command handles both TanStack Start and standard Vite paths
+# 7. Start the server
 CMD ["sh", "-c", "if [ -d 'dist/client' ]; then serve -s dist/client -l 3000; else serve -s dist -l 3000; fi"]
