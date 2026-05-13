@@ -1,25 +1,26 @@
-FROM oven/bun:latest AS build
+FROM oven/bun:latest
 
-# Pass the keys from Coolify into the build
+# 1. Set working directory
+WORKDIR /app
+
+# 2. Define the keys as arguments (These come from Coolify)
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
 
-WORKDIR /app
+# 3. FORCE these into the environment so Bun sees them during the build
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+
+# 4. Copy code and install
 COPY . .
-
-# PHYSICAL INJECTION: This creates a real .env file inside the container
-RUN echo "VITE_SUPABASE_URL=${VITE_SUPABASE_URL}" > .env && \
-    echo "VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}" >> .env
-
 RUN bun install
+
+# 5. Build (The keys are now physically present in the build environment)
 RUN bun run build
 
-# Stage 2: Serving the files
-FROM oven/bun:latest
-WORKDIR /app
+# 6. Setup the server
 RUN bun add -g serve
-COPY --from=build /app/dist ./dist
 EXPOSE 3000
 
-# Start server checking for sub-folders
+# 7. Start the server (Checking for sub-folders)
 CMD ["sh", "-c", "if [ -d 'dist/client' ]; then serve -s dist/client -l 3000; else serve -s dist -l 3000; fi"]
