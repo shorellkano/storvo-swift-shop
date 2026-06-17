@@ -801,7 +801,20 @@ const Storefront = () => {
             <img src={storvoLogo} alt="Storvo" className="h-8 w-auto rounded-md" />
             <p className="text-sm font-semibold text-foreground">Sell with Storvo</p>
             <p className="text-xs text-muted-foreground">Turn your social media into a store - it's free</p>
-            <a href="/" className="mt-1 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-white transition-all hover:opacity-90" style={{ background: brandColor }}>
+            <a
+              href="/"
+              onClick={() => {
+                if (store?.id) {
+                  supabase.from("link_clicks").insert({
+                    store_id: store.id,
+                    link_type: "badge",
+                    source: "storefront_footer",
+                  });
+                }
+              }}
+              className="mt-1 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-white transition-all hover:opacity-90"
+              style={{ background: brandColor }}
+            >
               Start your free store
             </a>
           </div>
