@@ -591,7 +591,7 @@ const AddProduct = () => {
         const {
           error:
             variantInsertError,
-        } = await supabase
+        } = await db
           .from("product_variants")
           .insert(
             variantRows.map(

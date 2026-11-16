@@ -1912,8 +1912,8 @@ const StoreSettings = () => {
                 {isOwner && (
                   <BillingSection
                     subscription={
-                      subscription
-                    }
+  subscription as any
+}
                     storeId={store.id}
                     onUpgrade={() =>
                       setShowUpgrade(true)

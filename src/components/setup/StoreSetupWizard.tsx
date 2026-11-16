@@ -1918,7 +1918,7 @@ const StoreSetupWizard = () => {
         }
 
         const store =
-          data as ExistingStore;
+  data as unknown as ExistingStore;
 
         if (
           store.user_id !==
@@ -4472,9 +4472,7 @@ const StoreSetupWizard = () => {
           return null;
       }
     };
-      if (
-    loading
-  ) {
+    if (loading) {
     return (
       <div className="flex min-h-[70vh] items-center justify-center">
         <div className="text-center">
@@ -4495,13 +4493,8 @@ const StoreSetupWizard = () => {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={
-                goBack
-              }
-              disabled={
-                saving ||
-                uploadingLogo
-              }
+              onClick={goBack}
+              disabled={saving || uploadingLogo}
               className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -4538,17 +4531,11 @@ const StoreSetupWizard = () => {
       </div>
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-        {currentStep !==
-        "complete" ? (
+        {currentStep !== "complete" ? (
           <div className="mb-7 sm:hidden">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground">
-                Step{" "}
-                {currentStepIndex +
-                  1}{" "}
-                of{" "}
-                {steps.length -
-                  1}
+                Step {currentStepIndex + 1} of {steps.length - 1}
               </span>
 
               <span className="text-xs font-semibold text-muted-foreground">
@@ -4571,20 +4558,12 @@ const StoreSetupWizard = () => {
           {renderCurrentStep()}
         </div>
 
-        {currentStep !==
-          "complete" &&
-        currentStep !==
-          "plan" ? (
+        {currentStep !== "complete" && currentStep !== "plan" ? (
           <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
-              onClick={
-                goBack
-              }
-              disabled={
-                saving ||
-                uploadingLogo
-              }
+              onClick={goBack}
+              disabled={saving || uploadingLogo}
               className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 text-sm font-bold text-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -4593,13 +4572,8 @@ const StoreSetupWizard = () => {
 
             <button
               type="button"
-              onClick={
-                goNext
-              }
-              disabled={
-                saving ||
-                uploadingLogo
-              }
+              onClick={goNext}
+              disabled={saving || uploadingLogo}
               className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-bold text-primary-foreground transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Continue
@@ -4612,4 +4586,4 @@ const StoreSetupWizard = () => {
   );
 };
 
-export default StoreSetupWizard;
+export default StoreSetupWizard;  
