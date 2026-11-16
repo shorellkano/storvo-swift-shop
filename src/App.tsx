@@ -6,11 +6,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
-import StoreSetup from "./pages/StoreSetup";
+import StoreSetupWizard from "@/components/setup/StoreSetupWizard";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
-import AddProduct from "./pages/AddProduct";
-import EditProduct from "./pages/EditProduct";
+import AddProduct from "./pages/AddProduct";import EditProduct from "./pages/EditProduct";
 import ProductPreview from "./pages/ProductPreview";
 import Orders from "./pages/Orders";
 import StoreSettings from "./pages/StoreSettings";
@@ -47,8 +46,9 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<AuthPage />} />
-            <Route path="/setup" element={<StoreSetup />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+<Route path="/setup" element={<StoreSetupWizard />} />
+<Route path="/store-setup-wizard" element={<StoreSetupWizard />} />          
+  <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/products" element={<Products />} />
             <Route path="/dashboard/products/new" element={<AddProduct />} />
             <Route path="/dashboard/products/:id/edit" element={<EditProduct />} />
