@@ -64,12 +64,19 @@ const ProductPage = () => {
       setOgMeta("og:type", "product");
       document.title = `${productData.name} - ${storeData.name} | Storvo`;
 
-      await supabase.from("link_clicks").insert({
-        store_id: storeData.id,
-        product_id: productData.id,
-        link_type: "product",
-        referrer: document.referrer || null,
-      });
+await (supabase as any).from("link_clicks").insert({
+      store_id: storeData.id,
+  product_id: productData.id,
+  link_type: "product",
+  referrer: document.referrer || null,
+});
+
+await (supabase as any)
+  .from("product_views")
+  .insert({
+    store_id: storeData.id,
+    product_id: productData.id,
+  });
 
       setLoading(false);
     })();

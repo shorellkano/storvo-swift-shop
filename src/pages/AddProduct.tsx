@@ -279,12 +279,56 @@ const AddProduct = () => {
     : FREE_VIDEO_LIMIT;
 
   const generateSlug = (
-    name: string,
-  ) =>
-    name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
+  name: string,
+) =>
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
+const generateUniqueSlug = async (
+  name: string,
+  storeId: string,
+) => {
+  const baseSlug =
+    generateSlug(name);
+
+  let candidate =
+    baseSlug;
+
+  let counter = 2;
+
+  while (true) {
+    const {
+      data,
+      error,
+    } = await supabase
+      .from("products")
+      .select("id")
+      .eq(
+        "store_id",
+        storeId,
+      )
+      .eq(
+        "slug",
+        candidate,
+      )
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data) {
+      return candidate;
+    }
+
+    candidate =
+      `${baseSlug}-${counter}`;
+
+    counter += 1;
+  }
+};
 
   const resetForm = () => {
     setForm({
@@ -518,9 +562,11 @@ const AddProduct = () => {
     setLoading(true);
 
     try {
-      const slug = generateSlug(
-        form.name,
-      );
+     const slug =
+  await generateUniqueSlug(
+    form.name,
+    store.id,
+  );
 
       const {
         data: product,

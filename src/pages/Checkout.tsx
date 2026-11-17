@@ -45,6 +45,8 @@ const Checkout = () => {
   const [orderNumber, setOrderNumber] = useState("");
   const [digitalItems, setDigitalItems] = useState<{ name: string; url: string }[]>([]);
   const [placedOrder, setPlacedOrder] = useState<any>(null);
+  const [paymentSucceeded, setPaymentSucceeded] = useState(false);
+const [emailConfirmationSent, setEmailConfirmationSent] = useState(false);
 
   const paystackScriptReady = usePaystackScript();
   const paystackPublicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string | undefined;
@@ -77,9 +79,20 @@ const Checkout = () => {
     }
 
     if (paid) {
-      await supabase.from("orders").update({ status: "paid" }).eq("id", orderId);
-      await supabase.from("payments").update({ status: "success" }).eq("order_id", orderId);
-    }
+  await supabase
+    .from("orders")
+    .update({ status: "paid" })
+    .eq("id", orderId);
+
+  await supabase
+    .from("payments")
+    .update({ status: "success" })
+    .eq("order_id", orderId);
+
+  setPaymentSucceeded(true);
+} else {
+  setPaymentSucceeded(false);
+}
 
     const digital = cart
       .filter((item: any) => item.product.product_type === "digital" && item.product.digital_file_url)
@@ -94,8 +107,25 @@ const Checkout = () => {
     try { sessionStorage.removeItem(`storvo_cart_${slug}`); } catch {}
 
     // Send email notifications (non-blocking)
-    supabase.functions.invoke("send-order-email", { body: { orderId } }).catch(() => {});
-  };
+try {
+  const { error } =
+    await supabase.functions.invoke(
+      "send-order-email",
+      {
+        body: {
+          orderId,
+        },
+      },
+    );
+
+  setEmailConfirmationSent(
+    !error,
+  );
+} catch {
+  setEmailConfirmationSent(
+    false,
+  );
+}  };
 
   const createOrderRecord = async () => {
     const { data: customer, error: custErr } = await supabase
@@ -222,10 +252,24 @@ const Checkout = () => {
               <span className="font-mono font-semibold text-foreground">#{orderNumber}</span>
             </div>
             {form.email && (
-              <p className="mt-3 text-xs text-muted-foreground">
-                Confirmation sent to <span className="font-medium">{form.email}</span>
-              </p>
-            )}
+  <p className="mt-3 text-xs text-muted-foreground">
+    {emailConfirmationSent ? (
+      <>
+        Confirmation sent to{" "}
+        <span className="font-medium">
+          {form.email}
+        </span>
+      </>
+    ) : (
+      <>
+        Order recorded for{" "}
+        <span className="font-medium">
+          {form.email}
+        </span>
+      </>
+    )}
+  </p>
+)}
           </div>
 
           {/* Order items */}
@@ -255,10 +299,17 @@ const Checkout = () => {
                   <span>{formatCurrency(deliveryFee)}</span>
                 </div>
               )}
-              <div className="flex justify-between font-bold text-base pt-1">
-                <span>Total Paid</span>
-                <span style={{ color: brandColor }}>{formatCurrency(orderTotal)}</span>
-              </div>
+             <div className="flex justify-between font-bold text-base pt-1">
+  <span>
+    {paymentSucceeded
+      ? "Total Paid"
+      : "Order Total"}
+  </span>
+
+  <span style={{ color: brandColor }}>
+    {formatCurrency(orderTotal)}
+  </span>
+</div>
             </div>
           </div>
 

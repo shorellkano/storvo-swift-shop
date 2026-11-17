@@ -3,11 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
+  
+  
   Copy,
   Check,
   MessageCircle,
@@ -22,7 +25,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-
+const db = supabase as any;
 interface FirstSalePanelProps {
   store: any;
 }
@@ -51,8 +54,9 @@ const darkenHex = (hex: string, amount = 0.4) => {
 
 const FirstSalePanel = ({ store }: FirstSalePanelProps) => {
   const [firstProduct, setFirstProduct] = useState<any>(null);
-  const [totalOrders, setTotalOrders] = useState(0);
-  const [totalRevenue, setTotalRevenue] = useState(0);
+ const [totalOrders, setTotalOrders] = useState(0);
+const [totalSales, setTotalSales] = useState(0);
+const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalClicks, setTotalClicks] = useState(0);
   const [loading, setLoading] = useState(true);
   const [visible, setVisible] = useState(false);
@@ -60,8 +64,7 @@ const FirstSalePanel = ({ store }: FirstSalePanelProps) => {
 
   // Celebration dialog
   const [showCelebration, setShowCelebration] = useState(false);
-  const prevOrdersRef = useRef<number | null>(null);
-
+  const prevSalesRef = useRef<number | null>(null);
   // Copy state
   const [copied, setCopied] = useState(false);
 
@@ -109,39 +112,53 @@ const FirstSalePanel = ({ store }: FirstSalePanelProps) => {
         .select("amount")
         .eq("store_id", store.id)
         .eq("status", "success"),
-      supabase.from("product_views").select("id", { count: "exact" }).eq("store_id", store.id),
-    ]);
+db.from("product_views").select("id", { count: "exact" }).eq("store_id", store.id),    ]);
 
     const product = productsRes.data?.[0] || null;
-    const orderCount = ordersRes.count || 0;
-    const revenue = (paymentsRes.data || []).reduce((s, p) => s + Number(p.amount), 0);
-    const clicks = viewsRes.count || 0;
-
+   const orderCount = ordersRes.count || 0;
+const successfulSalesCount = paymentsRes.data?.length || 0;
+const revenue = (paymentsRes.data || []).reduce(
+  (sum, payment) => sum + Number(payment.amount),
+  0,
+);
+const clicks = viewsRes.count || 0;
     setFirstProduct(product);
     setTotalOrders(orderCount);
+    setTotalSales(successfulSalesCount);
     setTotalRevenue(revenue);
     setTotalClicks(clicks);
 
     // Show panel if seller has products
     setVisible(product !== null);
 
-    // Detect first order celebration
-    if (prevOrdersRef.current !== null && prevOrdersRef.current === 0 && orderCount > 0) {
-      const alreadySeen = localStorage.getItem(celebrationKey);
-      if (!alreadySeen) {
-        setShowCelebration(true);
-        localStorage.setItem(celebrationKey, "1");
-      }
-    }
-    // Also show celebration on initial load if they have orders but haven't seen it
-    if (prevOrdersRef.current === null && orderCount > 0) {
-      const alreadySeen = localStorage.getItem(celebrationKey);
-      if (!alreadySeen) {
-        setShowCelebration(true);
-        localStorage.setItem(celebrationKey, "1");
-      }
-    }
-    prevOrdersRef.current = orderCount;
+    // Celebrate only after the first successful payment
+if (
+  prevSalesRef.current !== null &&
+  prevSalesRef.current === 0 &&
+  successfulSalesCount > 0
+) {
+  const alreadySeen = localStorage.getItem(celebrationKey);
+
+  if (!alreadySeen) {
+    setShowCelebration(true);
+    localStorage.setItem(celebrationKey, "1");
+  }
+}
+
+// Initial load: only celebrate if a real paid sale exists
+if (
+  prevSalesRef.current === null &&
+  successfulSalesCount > 0
+) {
+  const alreadySeen = localStorage.getItem(celebrationKey);
+
+  if (!alreadySeen) {
+    setShowCelebration(true);
+    localStorage.setItem(celebrationKey, "1");
+  }
+}
+
+prevSalesRef.current = successfulSalesCount;
 
     setLoading(false);
   };
@@ -290,7 +307,7 @@ const FirstSalePanel = ({ store }: FirstSalePanelProps) => {
 
   // If seller has orders and has seen celebration, hide the activation panel
   // but still show progress stats
-  const hasFirstSale = totalOrders > 0;
+  const hasFirstSale = totalSales > 0;
 
   return (
     <>
