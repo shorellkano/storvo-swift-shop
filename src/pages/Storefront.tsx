@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+const db = supabase as any;
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +12,7 @@ import VerifiedBadge from "@/components/VerifiedBadge";
 import { toast } from "sonner";
 import ShareSheet from "@/components/dashboard/ShareSheet";
 import CartDrawer from "@/components/storefront/CartDrawer";
+import ServiceWebsite from "@/components/storefront/ServiceWebsite";
 import { useCart } from "@/hooks/useCart";
 import storvoLogo from "@/assets/storvo-logo.png";
 
@@ -49,6 +51,268 @@ const detectSocialSource = (): string | null => {
   return null;
 };
 
+
+type ServiceItem = {
+  title: string;
+  description: string;
+};
+
+type ProcessStep = {
+  title: string;
+  description: string;
+};
+
+type GalleryItem = {
+  title: string;
+  description: string;
+  imageUrl: string;
+  date?: string;
+  location?: string;
+};
+
+type UpcomingEvent = {
+  title: string;
+  description: string;
+  date: string;
+  location?: string;
+};
+
+const asObject = (value: unknown): Record<string, any> =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, any>)
+    : {};
+
+const firstString = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return "";
+};
+
+const cleanDisplayText = (value: unknown) =>
+  String(value || "")
+    .replace(/â€¦|Â…/g, "…")
+    .replace(/â€™|Â’/g, "'")
+    .replace(/â€œ|â€|Â“|Â”/g, '"')
+    .replace(/â€“|Â–/g, "-")
+    .replace(/â€”|Â—/g, "-")
+    .replace(/â‚¦|Â₦/g, "₦")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const normaliseServiceItems = (value: unknown): ServiceItem[] =>
+  Array.isArray(value)
+    ? value
+        .map((item: any) => ({
+          title: cleanDisplayText(item?.title),
+          description: cleanDisplayText(item?.description),
+        }))
+        .filter((item) => item.title)
+        .slice(0, 8)
+    : [];
+
+const normaliseProcessSteps = (value: unknown): ProcessStep[] =>
+  Array.isArray(value)
+    ? value
+        .map((item: any) => ({
+          title: cleanDisplayText(item?.title),
+          description: cleanDisplayText(item?.description),
+        }))
+        .filter((item) => item.title)
+        .slice(0, 4)
+    : [];
+
+const normaliseStrings = (value: unknown, limit = 8): string[] =>
+  Array.isArray(value)
+    ? value
+        .map((item) => cleanDisplayText(item))
+        .filter(Boolean)
+        .slice(0, limit)
+    : [];
+
+const normaliseGalleryItems = (value: unknown): GalleryItem[] =>
+  Array.isArray(value)
+    ? value
+        .map((item: any) => ({
+          title: cleanDisplayText(item?.title),
+          description: cleanDisplayText(item?.description),
+          imageUrl: firstString(item?.imageUrl, item?.image_url),
+          date: firstString(item?.date) || undefined,
+          location: cleanDisplayText(item?.location) || undefined,
+        }))
+        .filter((item) => item.title && item.imageUrl)
+        .slice(0, 30)
+    : [];
+
+const normaliseUpcomingEvents = (value: unknown): UpcomingEvent[] =>
+  Array.isArray(value)
+    ? value
+        .map((item: any) => ({
+          title: cleanDisplayText(item?.title),
+          description: cleanDisplayText(item?.description),
+          date: firstString(item?.date),
+          location: cleanDisplayText(item?.location) || undefined,
+        }))
+        .filter((item) => item.title && item.date)
+        .slice(0, 8)
+    : [];
+
+const resolveBusinessModel = (store: any): "product" | "service" | "digital" => {
+  const config = asObject(store?.storefront_config);
+  const homepage = asObject(config.homepage);
+  const storefront = asObject(config.storefront);
+
+  const configured = firstString(
+    config.businessModel,
+    config.storefrontType,
+    homepage.storefrontType,
+    storefront.type,
+    storefront.mode,
+  ).toLowerCase();
+
+  if (configured === "service") return "service";
+  if (configured === "digital") return "digital";
+  return "product";
+};
+
+const resolveServiceContent = (store: any) => {
+  const config = asObject(store?.storefront_config);
+  const generated = asObject(config.generatedContent);
+  const homepage = asObject(config.homepage);
+  const founder = asObject(homepage.founder);
+  const branding = asObject(config.branding);
+  const brand = asObject(config.brand);
+
+  const services = normaliseServiceItems(
+    homepage.services ?? generated.services,
+  );
+  const trustPoints = normaliseStrings(
+    homepage.trustPoints ?? generated.trustPoints,
+    4,
+  );
+  const processSteps = normaliseProcessSteps(
+    homepage.processSteps ?? generated.processSteps,
+  );
+  const reasons = normaliseStrings(
+    homepage.reasons ?? generated.reasons,
+    5,
+  );
+
+  const galleryItems = normaliseGalleryItems(homepage.galleryItems);
+  const upcomingEvents = normaliseUpcomingEvents(homepage.upcomingEvents);
+
+  return {
+    headline: firstString(
+      homepage.heroHeadline,
+      generated.headline,
+      store?.name,
+    ),
+    introduction: firstString(
+      homepage.heroDescription,
+      generated.introduction,
+      generated.shortDescription,
+      store?.description,
+    ),
+    aboutTitle: firstString(
+      homepage.aboutTitle,
+      generated.aboutTitle,
+      `About ${store?.name || "the business"}`,
+    ),
+    aboutText: firstString(
+      homepage.aboutText,
+      generated.aboutText,
+      store?.description,
+    ),
+    serviceArea: firstString(homepage.serviceArea, config.serviceArea),
+    primaryCta: firstString(
+      homepage.primaryCta,
+      config.primaryAction,
+      "View services",
+    ),
+    secondaryCta: firstString(
+      homepage.secondaryCta,
+      config.secondaryAction,
+      "Make an enquiry",
+    ),
+    enquiryButtonText: firstString(
+      homepage.enquiryButtonText,
+      "Make an enquiry",
+    ),
+    services,
+    trustPoints,
+    processSteps,
+    reasons,
+    galleryItems:
+      homepage.showGallery === false ? [] : galleryItems,
+    upcomingEvents:
+      homepage.showUpcomingEvents === false ? [] : upcomingEvents,
+    brandColor: firstString(
+      homepage.primaryColor,
+      branding.primaryColor,
+      brand.primaryColor,
+      config.primaryColor,
+      store?.brand_color,
+      "#4F46E5",
+    ),
+    accentColor: firstString(
+      homepage.accentColor,
+      branding.accentColor,
+      brand.accentColor,
+      config.accentColor,
+      "#7C3AED",
+    ),
+    founderEnabled: Boolean(
+      founder.enabled ??
+        homepage.founderEnabled ??
+        config.founderEnabled ??
+        false,
+    ),
+    founderSectionTitle: firstString(
+      founder.sectionTitle,
+      homepage.founderSectionTitle,
+      "Meet the founder",
+    ),
+    founderName: firstString(founder.name, homepage.founderName),
+    founderRole: firstString(founder.role, homepage.founderRole),
+    founderPhotoUrl: firstString(
+      founder.photoUrl,
+      founder.imageUrl,
+      homepage.founderPhotoUrl,
+      homepage.founderImageUrl,
+    ) || null,
+    founderBio: firstString(founder.bio, homepage.founderBio),
+    founderQuote: firstString(founder.quote, homepage.founderQuote),
+    founderProfileUrl: firstString(
+      founder.profileUrl,
+      homepage.founderProfileUrl,
+    ),
+    founderButtonText: firstString(
+      founder.buttonText,
+      homepage.founderButtonText,
+      "Learn more",
+    ),
+    heroEyebrow: firstString(
+      homepage.heroEyebrow,
+      "Professional services",
+    ),
+    aboutHighlightHeading: firstString(
+      homepage.aboutHighlightHeading,
+      "Thoughtful service from enquiry to delivery.",
+    ),
+    servicesIntroduction: firstString(
+      homepage.servicesIntroduction,
+      generated.sectionSubtitle,
+      "Explore the main ways the business can support you.",
+    ),
+    whyChooseHeading: firstString(
+      homepage.whyChooseHeading,
+      "Professional service, clearly delivered.",
+    ),
+  };
+};
+
 const Storefront = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -66,6 +330,7 @@ const Storefront = () => {
   const [isSocialMode, setIsSocialMode] = useState(false);
   const [socialSource, setSocialSource] = useState<string | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
+  const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryItem | null>(null);
 
   // Make Offer state
   const [showOfferModal, setShowOfferModal] = useState(false);
@@ -90,7 +355,13 @@ const Storefront = () => {
       if (!storeData) { setLoading(false); return; }
       setStore(storeData);
 
-      document.title = `${storeData.name} | Shop on Storvo`;
+      const businessModel = resolveBusinessModel(storeData);
+      const serviceStore = businessModel === "service";
+      const digitalStore = businessModel === "digital";
+
+      document.title = `${storeData.name} | ${
+        serviceStore ? "Services" : digitalStore ? "Digital products" : "Shop"
+      } on Storvo`;
       const setMeta = (property: string, content: string) => {
         let el = document.querySelector(`meta[property="${property}"]`) || document.querySelector(`meta[name="${property}"]`);
         if (!el) {
@@ -101,8 +372,8 @@ const Storefront = () => {
         }
         el.setAttribute("content", content);
       };
-      setMeta("og:title", `${storeData.name} | Shop on Storvo`);
-      setMeta("og:description", storeData.description || `Shop ${storeData.name} on Storvo`);
+      setMeta("og:title", document.title);
+      setMeta("og:description", storeData.description || `${serviceStore ? "Explore services from" : "Shop"} ${storeData.name} on Storvo`);
       if (storeData.logo_url) setMeta("og:image", storeData.logo_url);
       setMeta("og:url", window.location.href);
       setMeta("og:type", "website");
@@ -116,6 +387,12 @@ const Storefront = () => {
         .eq("store_id", storeData.id)
         .maybeSingle();
       if (sub?.plan === "pro" && sub?.is_active) setIsPro(true);
+
+      if (serviceStore) {
+        setProducts([]);
+        setLoading(false);
+        return;
+      }
 
       const { data: prods } = await supabase
         .from("products")
@@ -143,7 +420,9 @@ const Storefront = () => {
 
   const trackProductView = async (productId: string, storeId: string) => {
     try {
-      await supabase.from("product_views").insert({ product_id: productId, store_id: storeId });
+      await db
+  .from("product_views")
+  .insert({ product_id: productId, store_id: storeId });
     } catch {
       // View tracking never breaks storefront
     }
@@ -157,8 +436,8 @@ const Storefront = () => {
     trackProductView(product.id, storeId);
 
     // Fetch related products
-    supabase
-      .from("product_related")
+    db
+  .from("product_related")
       .select("related_product_id, display_order, products:related_product_id(id, name, price, product_images(image_url, display_order))")
       .eq("product_id", product.id)
       .order("display_order")
@@ -224,7 +503,7 @@ const Storefront = () => {
     }
     setOfferSubmitting(true);
     try {
-      const { error } = await supabase.from("price_offers").insert({
+      const { error } = await db.from("price_offers").insert({
         product_id: selectedProduct.id,
         store_id: store.id,
         buyer_name: offerForm.buyerName,
@@ -261,7 +540,205 @@ const Storefront = () => {
     );
   }
 
-  const brandColor = store.brand_color || "#6366F1";
+  const businessModel = resolveBusinessModel(store);
+  const isServiceStore = businessModel === "service";
+  const serviceContent = resolveServiceContent(store);
+  const brandColor = store.brand_color || serviceContent.brandColor || "#6366F1";
+  const accentColor = serviceContent.accentColor || brandColor;
+
+  const openBusinessWhatsApp = (message?: string) => {
+    const phone = String(store.whatsapp_number || "").replace(/\D/g, "");
+    if (!phone) {
+      toast.error("This business has not added a WhatsApp number yet");
+      return;
+    }
+
+    const text =
+      message ||
+      `Hello ${store.name}, I would like to make an enquiry.`;
+
+    window.open(
+      `https://wa.me/${phone}?text=${encodeURIComponent(text)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  };
+
+  if (isServiceStore) {
+    return (
+      <div className="min-h-screen bg-background">
+        {isOwner && (
+          <div className="sticky top-0 z-50 border-b border-border/60 bg-card/95 backdrop-blur-xl">
+            <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+              <button
+                type="button"
+                onClick={() => navigate("/dashboard")}
+                className="inline-flex items-center gap-2 text-sm font-bold text-foreground"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Dashboard
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate("/dashboard/settings")}
+                className="rounded-lg px-3 py-2 text-sm font-bold text-white"
+                style={{ backgroundColor: brandColor }}
+              >
+                Edit website
+              </button>
+            </div>
+          </div>
+        )}
+
+        <main className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+          <ServiceWebsite
+            storeName={store.name}
+            logoUrl={store.logo_url}
+            headline={serviceContent.headline}
+            introduction={serviceContent.introduction}
+            aboutTitle={serviceContent.aboutTitle}
+            aboutText={serviceContent.aboutText}
+            serviceArea={serviceContent.serviceArea}
+            primaryCta={serviceContent.primaryCta}
+            secondaryCta={serviceContent.secondaryCta}
+            enquiryButtonText={serviceContent.enquiryButtonText}
+            services={serviceContent.services}
+            trustPoints={serviceContent.trustPoints}
+            processSteps={serviceContent.processSteps}
+            reasons={serviceContent.reasons}
+            whyChooseHeading={serviceContent.whyChooseHeading}
+            heroEyebrow={serviceContent.heroEyebrow}
+            aboutHighlightHeading={serviceContent.aboutHighlightHeading}
+            servicesIntroduction={serviceContent.servicesIntroduction}
+            galleryItems={serviceContent.galleryItems}
+            upcomingEvents={serviceContent.upcomingEvents}
+            brandColor={brandColor}
+            accentColor={accentColor}
+            isOwner={isOwner}
+            phone={store.phone_number || store.phone || null}
+            whatsapp={store.whatsapp_number || null}
+            email={store.email || store.business_email || null}
+            address={store.address || store.business_address || null}
+            openingHours={
+              store.opening_hours ||
+              store.storefront_config?.homepage?.openingHours ||
+              null
+            }
+            instagram={store.instagram_handle || null}
+            facebook={store.facebook_handle || store.storefront_config?.homepage?.facebook || null}
+            tiktok={store.tiktok_handle || store.storefront_config?.homepage?.tiktok || null}
+            linkedin={store.linkedin_handle || store.storefront_config?.homepage?.linkedin || null}
+            x={store.x_handle || store.twitter_handle || store.storefront_config?.homepage?.x || null}
+            youtube={store.youtube_handle || store.storefront_config?.homepage?.youtube || null}
+            snapchat={store.snapchat_handle || store.storefront_config?.homepage?.snapchat || null}
+            founderEnabled={serviceContent.founderEnabled}
+            founderSectionTitle={serviceContent.founderSectionTitle}
+            founderName={serviceContent.founderName}
+            founderRole={serviceContent.founderRole}
+            founderPhotoUrl={serviceContent.founderPhotoUrl}
+            founderBio={serviceContent.founderBio}
+            founderQuote={serviceContent.founderQuote}
+            founderProfileUrl={serviceContent.founderProfileUrl}
+            founderButtonText={serviceContent.founderButtonText}
+            isPro={isPro}
+            showDeliveryPolicy={false}
+            showReturnsPolicy={false}
+            onPrimaryAction={() => {
+              document
+                .getElementById("service-services")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            onSecondaryAction={() => openBusinessWhatsApp()}
+            onServiceEnquiry={(serviceTitle) =>
+              openBusinessWhatsApp(
+                `Hello ${store.name}, I would like to enquire about ${serviceTitle}.`,
+              )
+            }
+            onGalleryImageClick={(item) => setSelectedGalleryItem(item)}
+          />
+        </main>
+
+        {selectedGalleryItem && (
+          <div
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label={selectedGalleryItem.title}
+            onClick={() => setSelectedGalleryItem(null)}
+          >
+            <div
+              className="relative max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-3xl bg-card shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setSelectedGalleryItem(null)}
+                className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur"
+                aria-label="Close gallery image"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              <img
+                src={selectedGalleryItem.imageUrl}
+                alt={selectedGalleryItem.title}
+                className="max-h-[72vh] w-full bg-black object-contain"
+              />
+
+              <div className="p-5 sm:p-6">
+                <h3 className="text-xl font-black text-foreground">
+                  {selectedGalleryItem.title}
+                </h3>
+
+                {selectedGalleryItem.description && (
+                  <p className="mt-2 leading-7 text-muted-foreground">
+                    {selectedGalleryItem.description}
+                  </p>
+                )}
+
+                {(selectedGalleryItem.date || selectedGalleryItem.location) && (
+                  <p
+                    className="mt-3 text-sm font-semibold"
+                    style={{ color: brandColor }}
+                  >
+                    {[selectedGalleryItem.date, selectedGalleryItem.location]
+                      .filter(Boolean)
+                      .join(" • ")}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!isPro && (
+          <footer className="border-t border-border/60 bg-card/50 py-10 text-center">
+            <div className="flex flex-col items-center gap-3">
+              <img
+                src={storvoLogo}
+                alt="Storvo"
+                className="h-8 w-auto rounded-md"
+              />
+              <p className="text-sm font-semibold text-foreground">
+                Build your business website with Storvo
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Your brand. Your storefront. Live in minutes.
+              </p>
+              <a
+                href="/"
+                className="mt-1 inline-flex items-center rounded-full px-4 py-2 text-xs font-semibold text-white"
+                style={{ backgroundColor: brandColor }}
+              >
+                Create your storefront
+              </a>
+            </div>
+          </footer>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
