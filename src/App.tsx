@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import Analytics from "./pages/Analytics";
 import Customers from "./pages/Customers";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/dashboard/products/:id/preview" element={<ProductPreview />} />
             <Route path="/dashboard/orders" element={<Orders />} />
             <Route path="/dashboard/customers" element={<Customers />} />
+            <Route path="/dashboard/analytics" element={<Analytics />} />
             <Route path="/dashboard/settings" element={<StoreSettings />} />
             <Route path="/dashboard/verification" element={<VerificationPage />} />
             <Route path="/dashboard/growth" element={<GrowthToolsPage />} />
