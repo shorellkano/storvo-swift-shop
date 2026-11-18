@@ -6,13 +6,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ShoppingCart, MessageCircle, Share2, Store, X, Check, ArrowLeft, HandshakeIcon, Copy, Zap } from "lucide-react";
-import ProductImageCarousel from "@/components/product/ProductImageCarousel";
+import {
+  ShoppingCart,
+  MessageCircle,
+  Share2,
+  Store,
+  X,
+  Check,
+  ArrowLeft,
+  HandshakeIcon,
+  Copy,
+  Zap,
+  Search,
+  BadgeCheck,
+  LockKeyhole,
+  Truck,
+} from "lucide-react";import ProductImageCarousel from "@/components/product/ProductImageCarousel";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { toast } from "sonner";
 import ShareSheet from "@/components/dashboard/ShareSheet";
 import CartDrawer from "@/components/storefront/CartDrawer";
 import ServiceWebsite from "@/components/storefront/ServiceWebsite";
+import StoreHero from "@/components/storefront/StoreHero";
 import { useCart } from "@/hooks/useCart";
 import storvoLogo from "@/assets/storvo-logo.png";
 
@@ -331,7 +346,8 @@ const Storefront = () => {
   const [socialSource, setSocialSource] = useState<string | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryItem | null>(null);
-
+const [searchQuery, setSearchQuery] = useState("");
+const [activeCategory, setActiveCategory] = useState("All");
   // Make Offer state
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [offerSubmitting, setOfferSubmitting] = useState(false);
@@ -739,195 +755,814 @@ const Storefront = () => {
       </div>
     );
   }
+const productConfig = asObject(store.storefront_config);
+const productHomepage = asObject(productConfig.homepage);
+const generatedContent = asObject(productConfig.generatedContent);
 
+const productHeadline = firstString(
+  productHomepage.heroHeadline,
+  generatedContent.headline,
+  `Discover ${store.name}`,
+);
+
+const productDescription = firstString(
+  productHomepage.heroDescription,
+  generatedContent.introduction,
+  generatedContent.shortDescription,
+  store.description,
+);
+
+const productPrimaryCta = firstString(
+  productHomepage.primaryCta,
+  "Shop now",
+);
+
+const productSecondaryCta = firstString(
+  productHomepage.secondaryCta,
+  "Browse products",
+);
+
+const productSectionTitle = firstString(
+  productHomepage.sectionTitle,
+  "Shop the collection",
+);
+
+const productSectionSubtitle = firstString(
+  productHomepage.sectionSubtitle,
+  "Browse the available products and choose what suits you.",
+);
+
+const showProductSearch =
+  productHomepage.showSearch !== false;
+
+const showProductCategories =
+  productHomepage.showCategories !== false;
+
+const showProductTrust =
+  productHomepage.showTrustStrip !== false;
+
+const firstProductImage =
+  products
+    .flatMap(
+      (product: any) =>
+        product.product_images || [],
+    )
+    .sort(
+      (a: any, b: any) =>
+        (a.display_order || 0) -
+        (b.display_order || 0),
+    )[0]?.image_url || null;
+
+const categories = [
+  "All",
+  ...Array.from(
+    new Set(
+      products
+        .map(
+          (product: any) =>
+            product.category ||
+            product.product_type ||
+            "",
+        )
+        .filter(Boolean),
+    ),
+  ),
+];
+
+const filteredProducts = products.filter(
+  (product: any) => {
+    const matchesSearch =
+      !searchQuery.trim() ||
+      `${product.name || ""} ${
+        product.description || ""
+      }`
+        .toLowerCase()
+        .includes(
+          searchQuery.trim().toLowerCase(),
+        );
+
+    const matchesCategory =
+      activeCategory === "All" ||
+      product.category === activeCategory ||
+      product.product_type === activeCategory;
+
+    return matchesSearch && matchesCategory;
+  },
+);
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 border-b border-border/60 bg-card/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-          <div className="flex items-center gap-3">
-            {isOwner && (
-              <button onClick={() => navigate("/dashboard")} className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-            )}
-            {store.logo_url ? (
-              <img src={store.logo_url} alt={store.name} className="h-8 w-8 rounded-lg object-cover" />
-            ) : (
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-white" style={{ background: brandColor }}>
-                {store.name.charAt(0)}
-              </div>
-            )}
-            <span className="font-display font-semibold text-foreground">{store.name}</span>
-            {store.is_verified && <VerifiedBadge size="sm" className="ml-1" />}
-          </div>
-          <button
-            onClick={() => { setSelectedProduct(null); setShowCart(!showCart); }}
-            className="relative rounded-xl bg-accent p-2 transition-colors hover:bg-accent/80"
-            data-testid="button-open-cart"
-          >
-            <ShoppingCart className="h-5 w-5 text-foreground" />
-            {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-white" style={{ background: brandColor }}>
-                {cartCount}
-              </span>
-            )}
-          </button>
-        </div>
-      </header>
+  <div className="min-h-screen bg-background">
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-card/90 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 items-center gap-3">
+          {isOwner && (
+            <button
+              type="button"
+              onClick={() =>
+                navigate("/dashboard")
+              }
+              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              aria-label="Return to dashboard"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+          )}
 
-      <main className={isSocialMode ? "max-w-lg mx-auto px-4 py-6" : "mx-auto max-w-5xl px-4 py-8"}>
-        {/* Social mode banner */}
-        {isSocialMode && (
+          {store.logo_url ? (
+            <img
+              src={store.logo_url}
+              alt={`${store.name} logo`}
+              className="h-9 w-9 rounded-xl object-contain"
+            />
+          ) : (
+            <div
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold text-white"
+              style={{
+                backgroundColor:
+                  brandColor,
+              }}
+            >
+              {store.name
+                .charAt(0)
+                .toUpperCase()}
+            </div>
+          )}
+
+          <span className="truncate font-display text-base font-bold text-foreground">
+            {store.name}
+          </span>
+
+          {store.is_verified && (
+            <VerifiedBadge
+              size="sm"
+              className="ml-1"
+            />
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedProduct(null);
+            setShowCart(true);
+          }}
+          className="relative rounded-xl bg-accent p-2.5 transition-colors hover:bg-accent/80"
+          aria-label="Open shopping cart"
+        >
+          <ShoppingCart className="h-5 w-5 text-foreground" />
+
+          {cartCount > 0 && (
+            <span
+              className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-bold text-white"
+              style={{
+                backgroundColor:
+                  brandColor,
+              }}
+            >
+              {cartCount}
+            </span>
+          )}
+        </button>
+      </div>
+    </header>
+
+    <main
+      className={
+        isSocialMode
+          ? "mx-auto max-w-lg px-4 py-6"
+          : "mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8"
+      }
+    >
+      {isSocialMode ? (
+        <>
           <div className="mb-5 flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5">
-            <Zap className="h-4 w-4 text-primary shrink-0" />
+            <Zap className="h-4 w-4 shrink-0 text-primary" />
+
             <p className="text-sm font-medium text-foreground">
-              Quick checkout enabled - tap <span className="font-bold">Buy Now</span> on any product
+              Quick checkout enabled -
+              tap{" "}
+              <span className="font-bold">
+                Buy Now
+              </span>{" "}
+              on any product
             </p>
           </div>
-        )}
 
-        {products.length === 0 ? (
-          <div className="py-20 text-center">
-            <p className="text-muted-foreground">No products available yet. Check back soon!</p>
-          </div>
-        ) : isSocialMode ? (
-          /* Social Commerce Mode - vertical scroll, full-width conversion cards */
-          <div className="space-y-5">
-            {products.map((product) => {
-              const mainImage = product.product_images?.[0]?.image_url;
-              const outOfStock = product.track_inventory && product.stock_quantity <= 0;
-              const hasVideo = (product.product_videos?.length || 0) > 0;
-              const isAdded = addedIds[product.id];
-              return (
-                <div key={product.id} className="rounded-2xl border border-border/60 bg-card overflow-hidden shadow-card">
-                  <div
-                    className="relative aspect-[4/3] bg-muted cursor-pointer"
-                    onClick={() => openProduct(product, store.id)}
-                  >
-                    {mainImage ? (
-                      <img src={mainImage} alt={product.name} className="h-full w-full object-cover" loading="lazy" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center">
-                        <Store className="h-10 w-10 text-muted-foreground" />
-                      </div>
-                    )}
-                    {outOfStock && (
-                      <div className="absolute inset-0 bg-foreground/50 flex items-center justify-center">
-                        <span className="rounded-full bg-card px-3 py-1 text-sm font-semibold text-foreground">Out of stock</span>
-                      </div>
-                    )}
-                    {hasVideo && (
-                      <div className="absolute top-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-xs text-white font-medium">Video</div>
-                    )}
-                    {/* Tap-to-view overlay hint */}
-                    <div className="absolute bottom-3 right-3 rounded-full bg-black/40 px-2.5 py-1 text-xs text-white">Tap to view</div>
-                  </div>
+          {products.length === 0 ? (
+            <div className="py-20 text-center">
+              <p className="text-muted-foreground">
+                No products available yet.
+                Check back soon!
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {products.map(
+                (product: any) => {
+                  const mainImage =
+                    product
+                      .product_images?.[0]
+                      ?.image_url;
 
-                  <div className="p-4">
-                    <h3
-                      className="font-display text-lg font-bold text-foreground cursor-pointer hover:opacity-80"
-                      onClick={() => openProduct(product, store.id)}
+                  const outOfStock =
+                    product.track_inventory &&
+                    product.stock_quantity <=
+                      0;
+
+                  const hasVideo =
+                    (product
+                      .product_videos
+                      ?.length || 0) > 0;
+
+                  const isAdded =
+                    addedIds[product.id];
+
+                  return (
+                    <div
+                      key={product.id}
+                      className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-card"
                     >
-                      {product.name}
-                    </h3>
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <span className="text-xl font-bold" style={{ color: brandColor }}>
-                        {formatCurrency(Number(product.price))}
-                      </span>
-                      {product.is_negotiable && (
-                        <span className="rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 text-xs font-semibold px-2 py-0.5">Negotiable</span>
-                      )}
-                    </div>
-                    {product.description && (
-                      <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{product.description}</p>
-                    )}
-                    <div className="mt-4 space-y-2">
-                      <button
-                        disabled={outOfStock}
-                        className="w-full h-12 rounded-xl text-base font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
-                        style={{ background: outOfStock ? undefined : brandColor }}
-                        onClick={() => navigate(`/store/${slug}/checkout`, { state: { cart: [{ product, quantity: 1 }], store } })}
+                      <div
+                        className="relative aspect-[4/3] cursor-pointer bg-muted"
+                        onClick={() =>
+                          openProduct(
+                            product,
+                            store.id,
+                          )
+                        }
                       >
-                        <Zap className="h-4 w-4" />
-                        Buy Now - {formatCurrency(Number(product.price))}
-                      </button>
-                      <button
-                        disabled={outOfStock}
-                        className="w-full h-10 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50 border border-border/60 bg-accent hover:bg-accent/80 text-foreground flex items-center justify-center gap-2"
-                        onClick={() => addToCart(product)}
-                      >
-                        {isAdded ? <><Check className="h-4 w-4 text-green-600" /> Added to Cart</> : <><ShoppingCart className="h-4 w-4" /> Add to Cart</>}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          /* Standard Mode - product grid */
-          <div className="grid gap-5 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {products.map((product) => {
-              const mainImage = product.product_images?.[0]?.image_url;
-              const outOfStock = product.track_inventory && product.stock_quantity <= 0;
-              const hasVideo = (product.product_videos?.length || 0) > 0;
-              const isAdded = addedIds[product.id];
+                        {mainImage ? (
+                          <img
+                            src={
+                              mainImage
+                            }
+                            alt={
+                              product.name
+                            }
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center">
+                            <Store className="h-10 w-10 text-muted-foreground" />
+                          </div>
+                        )}
 
-              return (
-                <div
-                  key={product.id}
-                  className="group cursor-pointer rounded-2xl border border-border/60 bg-card overflow-hidden shadow-card hover:shadow-card-hover transition-all"
-                  onClick={() => { openProduct(product, store.id); }}
-                >
-                  <div className="relative aspect-square bg-muted">
-                    {mainImage ? (
-                      <img src={mainImage} alt={product.name} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center">
-                        <Store className="h-8 w-8 text-muted-foreground" />
+                        {outOfStock && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-foreground/50">
+                            <span className="rounded-full bg-card px-3 py-1 text-sm font-semibold text-foreground">
+                              Out of stock
+                            </span>
+                          </div>
+                        )}
+
+                        {hasVideo && (
+                          <div className="absolute right-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white">
+                            Video
+                          </div>
+                        )}
+
+                        <div className="absolute bottom-3 right-3 rounded-full bg-black/40 px-2.5 py-1 text-xs text-white">
+                          Tap to view
+                        </div>
                       </div>
-                    )}
-                    {outOfStock && (
-                      <div className="absolute inset-0 bg-foreground/50 flex items-center justify-center">
-                        <span className="rounded-full bg-card px-3 py-1 text-xs font-semibold text-foreground">Out of stock</span>
+
+                      <div className="p-4">
+                        <h3
+                          className="cursor-pointer font-display text-lg font-bold text-foreground hover:opacity-80"
+                          onClick={() =>
+                            openProduct(
+                              product,
+                              store.id,
+                            )
+                          }
+                        >
+                          {product.name}
+                        </h3>
+
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <span
+                            className="text-xl font-bold"
+                            style={{
+                              color:
+                                brandColor,
+                            }}
+                          >
+                            {formatCurrency(
+                              Number(
+                                product.price,
+                              ),
+                            )}
+                          </span>
+
+                          {product.is_negotiable && (
+                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-950/50 dark:text-amber-400">
+                              Negotiable
+                            </span>
+                          )}
+                        </div>
+
+                        {product.description && (
+                          <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                            {
+                              product.description
+                            }
+                          </p>
+                        )}
+
+                        <div className="mt-4 space-y-2">
+                          <button
+                            disabled={
+                              outOfStock
+                            }
+                            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50"
+                            style={{
+                              background:
+                                outOfStock
+                                  ? undefined
+                                  : brandColor,
+                            }}
+                            onClick={() =>
+                              navigate(
+                                `/store/${slug}/checkout`,
+                                {
+                                  state: {
+                                    cart: [
+                                      {
+                                        product,
+                                        quantity: 1,
+                                      },
+                                    ],
+                                    store,
+                                  },
+                                },
+                              )
+                            }
+                          >
+                            <Zap className="h-4 w-4" />
+
+                            Buy Now -{" "}
+                            {formatCurrency(
+                              Number(
+                                product.price,
+                              ),
+                            )}
+                          </button>
+
+                          <button
+                            disabled={
+                              outOfStock
+                            }
+                            className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-border/60 bg-accent text-sm font-semibold text-foreground transition-all hover:bg-accent/80 active:scale-[0.98] disabled:opacity-50"
+                            onClick={() =>
+                              addToCart(
+                                product,
+                              )
+                            }
+                          >
+                            {isAdded ? (
+                              <>
+                                <Check className="h-4 w-4 text-green-600" />
+                                Added to Cart
+                              </>
+                            ) : (
+                              <>
+                                <ShoppingCart className="h-4 w-4" />
+                                Add to Cart
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
-                    )}
-                    {hasVideo && (
-                      <div className="absolute top-2 right-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] text-white font-medium">Video</div>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <p className="font-medium text-sm text-foreground line-clamp-2">{product.name}</p>
-                    <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                      <p className="text-sm font-bold" style={{ color: brandColor }}>{formatCurrency(Number(product.price))}</p>
-                      {product.is_negotiable && (
-                        <span className="rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 text-[10px] font-semibold px-1.5 py-0.5">Negotiable</span>
-                      )}
                     </div>
-                    <div className="mt-2 flex items-center gap-2">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                        disabled={outOfStock}
-                        className="flex-1 inline-flex items-center justify-center rounded-lg p-2 text-xs font-semibold text-white transition-all active:scale-95 disabled:opacity-50"
-                        style={{ background: isAdded ? "#16a34a" : brandColor }}
-                      >
-                        {isAdded ? <><Check className="h-3.5 w-3.5 mr-1" /> Added</> : "Add to Cart"}
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); shareProduct(product); }}
-                        className="flex-1 inline-flex items-center justify-center rounded-lg bg-accent p-2 hover:bg-accent/80 transition-colors text-xs font-medium gap-1"
-                      >
-                        <Share2 className="h-3.5 w-3.5 text-foreground" />
-                        <span className="hidden sm:inline text-foreground">Share</span>
-                      </button>
+                  );
+                },
+              )}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="space-y-6">
+          <StoreHero
+            storeName={store.name}
+            description={
+              productDescription
+            }
+            logoUrl={store.logo_url}
+            heroImage={
+              firstProductImage
+            }
+            brandColor={brandColor}
+            accentColor={
+              accentColor
+            }
+            headline={
+              productHeadline
+            }
+            primaryCtaLabel={
+              productPrimaryCta
+            }
+            secondaryCtaLabel={
+              productSecondaryCta
+            }
+            featuredLabel="Featured collection"
+            featuredText={
+              products.length === 1
+                ? "1 product available"
+                : `${products.length} products available`
+            }
+            onShopNow={() =>
+              document
+                .getElementById(
+                  "store-products",
+                )
+                ?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                })
+            }
+            onBrowseCategories={() =>
+              document
+                .getElementById(
+                  "store-products",
+                )
+                ?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                })
+            }
+          />
+
+          {showProductTrust && (
+            <section className="grid gap-3 rounded-2xl border border-border/60 bg-card p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                {
+                  icon: BadgeCheck,
+                  title:
+                    store.is_verified
+                      ? "Verified seller"
+                      : "Trusted storefront",
+                  description:
+                    store.is_verified
+                      ? "Verified by Storvo"
+                      : "Built securely on Storvo",
+                },
+                {
+                  icon:
+                    MessageCircle,
+                  title:
+                    "Direct support",
+                  description:
+                    "Chat with the seller",
+                },
+                {
+                  icon: LockKeyhole,
+                  title:
+                    "Secure checkout",
+                  description:
+                    "Protected order process",
+                },
+                {
+                  icon: Truck,
+                  title:
+                    "Delivery options",
+                  description:
+                    "Confirmed during checkout",
+                },
+              ].map((item) => {
+                const Icon =
+                  item.icon;
+
+                return (
+                  <div
+                    key={item.title}
+                    className="flex items-center gap-3 rounded-xl p-2"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent">
+                      <Icon
+                        className="h-5 w-5"
+                        style={{
+                          color:
+                            brandColor,
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">
+                        {item.title}
+                      </p>
+
+                      <p className="text-xs text-muted-foreground">
+                        {
+                          item.description
+                        }
+                      </p>
                     </div>
                   </div>
+                );
+              })}
+            </section>
+          )}
+
+          <section
+            id="store-products"
+            className="scroll-mt-24"
+          >
+            <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <p
+                    className="text-xs font-bold uppercase tracking-[0.18em]"
+                    style={{
+                      color:
+                        brandColor,
+                    }}
+                  >
+                    Explore the store
+                  </p>
+
+                  <h2 className="mt-1 font-display text-2xl font-bold text-foreground">
+                    {
+                      productSectionTitle
+                    }
+                  </h2>
+
+                  {productSectionSubtitle && (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {
+                        productSectionSubtitle
+                      }
+                    </p>
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </main>
+
+                {showProductSearch && (
+                  <div className="relative w-full lg:max-w-sm">
+                    <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
+                    <input
+                      value={
+                        searchQuery
+                      }
+                      onChange={(
+                        event,
+                      ) =>
+                        setSearchQuery(
+                          event.target
+                            .value,
+                        )
+                      }
+                      placeholder="Search products..."
+                      className="h-12 w-full rounded-xl border border-border bg-background pl-11 pr-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {showProductCategories &&
+                categories.length >
+                  1 && (
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {categories.map(
+                      (
+                        category: any,
+                      ) => (
+                        <button
+                          key={
+                            category
+                          }
+                          type="button"
+                          onClick={() =>
+                            setActiveCategory(
+                              category,
+                            )
+                          }
+                          className="rounded-full px-4 py-2 text-sm font-semibold transition"
+                          style={{
+                            backgroundColor:
+                              activeCategory ===
+                              category
+                                ? brandColor
+                                : `${brandColor}12`,
+                            color:
+                              activeCategory ===
+                              category
+                                ? "#FFFFFF"
+                                : brandColor,
+                          }}
+                        >
+                          {
+                            category
+                          }
+                        </button>
+                      ),
+                    )}
+                  </div>
+                )}
+            </div>
+
+            {filteredProducts.length ===
+            0 ? (
+              <div className="flex min-h-[320px] flex-col items-center justify-center px-4 text-center">
+                <Store className="h-12 w-12 text-muted-foreground" />
+
+                <h3 className="mt-4 text-xl font-bold text-foreground">
+                  No matching products
+                </h3>
+
+                <p className="mt-2 text-muted-foreground">
+                  Try another search or
+                  category.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {filteredProducts.map(
+                  (product: any) => {
+                    const mainImage =
+                      (
+                        product.product_images ||
+                        []
+                      )
+                        .sort(
+                          (
+                            a: any,
+                            b: any,
+                          ) =>
+                            (a.display_order ||
+                              0) -
+                            (b.display_order ||
+                              0),
+                        )[0]
+                        ?.image_url;
+
+                    const outOfStock =
+                      product.track_inventory &&
+                      product.stock_quantity <=
+                        0;
+
+                    const hasVideo =
+                      (product
+                        .product_videos
+                        ?.length || 0) >
+                      0;
+
+                    const isAdded =
+                      addedIds[
+                        product.id
+                      ];
+
+                    return (
+                      <article
+                        key={product.id}
+                        className="group overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg"
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openProduct(
+                              product,
+                              store.id,
+                            )
+                          }
+                          className="relative block aspect-square w-full overflow-hidden bg-muted text-left"
+                        >
+                          {mainImage ? (
+                            <img
+                              src={
+                                mainImage
+                              }
+                              alt={
+                                product.name
+                              }
+                              className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center">
+                              <Store className="h-10 w-10 text-muted-foreground" />
+                            </div>
+                          )}
+
+                          {outOfStock && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-foreground/50">
+                              <span className="rounded-full bg-card px-3 py-1 text-xs font-semibold text-foreground">
+                                Out of stock
+                              </span>
+                            </div>
+                          )}
+
+                          {hasVideo && (
+                            <div className="absolute right-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-medium text-white">
+                              Video
+                            </div>
+                          )}
+                        </button>
+
+                        <div className="p-4">
+                          <button
+                            type="button"
+                            className="block w-full text-left"
+                            onClick={() =>
+                              openProduct(
+                                product,
+                                store.id,
+                              )
+                            }
+                          >
+                            <h3 className="line-clamp-2 font-display text-base font-bold text-foreground">
+                              {
+                                product.name
+                              }
+                            </h3>
+                          </button>
+
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <p
+                              className="text-base font-black"
+                              style={{
+                                color:
+                                  brandColor,
+                              }}
+                            >
+                              {formatCurrency(
+                                Number(
+                                  product.price,
+                                ),
+                              )}
+                            </p>
+
+                            {product.is_negotiable && (
+                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-950/50 dark:text-amber-400">
+                                Negotiable
+                              </span>
+                            )}
+                          </div>
+
+                          {product.description && (
+                            <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                              {
+                                product.description
+                              }
+                            </p>
+                          )}
+
+                          <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                addToCart(
+                                  product,
+                                )
+                              }
+                              disabled={
+                                outOfStock
+                              }
+                              className="inline-flex h-10 items-center justify-center rounded-xl px-3 text-sm font-bold text-white transition active:scale-[0.98] disabled:opacity-50"
+                              style={{
+                                backgroundColor:
+                                  isAdded
+                                    ? "#16a34a"
+                                    : brandColor,
+                              }}
+                            >
+                              {isAdded ? (
+                                <>
+                                  <Check className="mr-1.5 h-4 w-4" />
+                                  Added
+                                </>
+                              ) : (
+                                <>
+                                  <ShoppingCart className="mr-1.5 h-4 w-4" />
+                                  Add
+                                </>
+                              )}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                shareProduct(
+                                  product,
+                                )
+                              }
+                              className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-background transition hover:bg-accent"
+                              aria-label={`Share ${product.name}`}
+                            >
+                              <Share2 className="h-4 w-4 text-foreground" />
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  },
+                )}
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+    </main>
 
       {/* Product Detail Modal */}
       {selectedProduct && (() => {
