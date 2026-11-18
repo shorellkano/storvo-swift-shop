@@ -74,7 +74,10 @@ const getFounderDraftKey = (storeId: string) =>
 const FOUNDER_IMAGE_URL_TTL = 60 * 60 * 24 * 365 * 10;
 
 type StorefrontType = "product" | "service";
-
+type PaymentMode =
+  | "manual"
+  | "paystack"
+  | "both";
 type GalleryItem = {
   title: string;
   description: string;
@@ -307,15 +310,16 @@ const StoreSettings = () => {
 
   const [youtube, setYoutube] =
     useState("");
+const [snapchat, setSnapchat] =
+  useState("");
+ const [deliveryFee, setDeliveryFee] =
+  useState("");
 
-  const [snapchat, setSnapchat] =
-    useState("");
+const [paymentMode, setPaymentMode] =
+  useState<PaymentMode>("manual");
 
-  const [deliveryFee, setDeliveryFee] =
-    useState("");
-
-  const [logoUrl, setLogoUrl] =
-    useState<string | null>(null);
+const [logoUrl, setLogoUrl] =
+  useState<string | null>(null);
 
   const [homepage, setHomepage] =
     useState<HomepageEditorState>(
@@ -393,7 +397,12 @@ const StoreSettings = () => {
     setDeliveryFee(
       store.delivery_fee?.toString() || "0",
     );
-
+setPaymentMode(
+  config.payment?.mode === "paystack" ||
+    config.payment?.mode === "both"
+    ? config.payment.mode
+    : "manual",
+);
     setLogoUrl(store.logo_url || null);
 
     setHomepage({
@@ -1638,7 +1647,10 @@ const StoreSettings = () => {
 
       const nextStorefrontConfig = {
         ...previousConfig,
-
+payment: {
+  ...(previousConfig.payment || {}),
+  mode: paymentMode,
+},
         storefrontType:
           homepage.storefrontType,
 
@@ -3240,7 +3252,107 @@ const StoreSettings = () => {
                     setShowUpgrade(true)
                   }
                 />
+<Card className="shadow-card">
+  <CardHeader>
+    <CardTitle className="text-lg">
+      Customer payment options
+    </CardTitle>
 
+    <CardDescription>
+      Choose how customers can pay when
+      ordering from your Storvo store.
+    </CardDescription>
+  </CardHeader>
+
+  <CardContent className="space-y-3">
+    <button
+      type="button"
+      onClick={() =>
+        setPaymentMode("manual")
+      }
+      className={`w-full rounded-xl border p-4 text-left transition ${
+        paymentMode === "manual"
+          ? "border-primary bg-primary/5"
+          : "border-border"
+      }`}
+    >
+      <p className="font-semibold">
+        Manual payment
+      </p>
+
+      <p className="mt-1 text-sm text-muted-foreground">
+        Customers place an order first.
+        You confirm payment and delivery
+        directly with them.
+      </p>
+    </button>
+
+    <button
+      type="button"
+      onClick={() =>
+        setPaymentMode("paystack")
+      }
+      disabled={
+        !store.paystack_subaccount_code
+      }
+      className={`w-full rounded-xl border p-4 text-left transition ${
+        paymentMode === "paystack"
+          ? "border-primary bg-primary/5"
+          : "border-border"
+      } ${
+        !store.paystack_subaccount_code
+          ? "cursor-not-allowed opacity-50"
+          : ""
+      }`}
+    >
+      <p className="font-semibold">
+        Pay online with Paystack
+      </p>
+
+      <p className="mt-1 text-sm text-muted-foreground">
+        Customers must complete online
+        payment before their order is
+        treated as paid.
+      </p>
+
+      {!store.paystack_subaccount_code && (
+        <p className="mt-2 text-xs font-medium text-amber-600">
+          Connect your settlement account
+          below to enable Paystack.
+        </p>
+      )}
+    </button>
+
+    <button
+      type="button"
+      onClick={() =>
+        setPaymentMode("both")
+      }
+      disabled={
+        !store.paystack_subaccount_code
+      }
+      className={`w-full rounded-xl border p-4 text-left transition ${
+        paymentMode === "both"
+          ? "border-primary bg-primary/5"
+          : "border-border"
+      } ${
+        !store.paystack_subaccount_code
+          ? "cursor-not-allowed opacity-50"
+          : ""
+      }`}
+    >
+      <p className="font-semibold">
+        Offer both options
+      </p>
+
+      <p className="mt-1 text-sm text-muted-foreground">
+        Let customers choose between
+        Paystack payment and placing a
+        manual order.
+      </p>
+    </button>
+  </CardContent>
+</Card>
                 <BankDetailsCard
                   storeId={store.id}
                   storeName={store.name}

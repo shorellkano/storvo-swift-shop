@@ -50,7 +50,30 @@ const [emailConfirmationSent, setEmailConfirmationSent] = useState(false);
 
   const paystackScriptReady = usePaystackScript();
   const paystackPublicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY as string | undefined;
-  const paystackEnabled = !!paystackPublicKey && paystackScriptReady;
+  const paymentMode =
+  store?.storefront_config?.payment?.mode === "paystack" ||
+  store?.storefront_config?.payment?.mode === "both"
+    ? store.storefront_config.payment.mode
+    : "manual";
+
+const paystackAvailable =
+  !!paystackPublicKey &&
+  paystackScriptReady;
+
+const allowManual =
+  paymentMode === "manual" ||
+  paymentMode === "both";
+
+const allowPaystack =
+  paymentMode === "paystack" ||
+  paymentMode === "both";
+
+const [selectedPaymentMethod, setSelectedPaymentMethod] =
+  useState<"manual" | "paystack">(
+    paymentMode === "paystack"
+      ? "paystack"
+      : "manual",
+  );
 
   if (!cart || !store) {
     return (
@@ -67,65 +90,110 @@ const [emailConfirmationSent, setEmailConfirmationSent] = useState(false);
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN" }).format(amount);
 
-  const finishOrder = async (orderId: string, orderNum: string, paid: boolean) => {
-    // Update inventory for physical tracked products
+  const finishOrder = async (
+  orderId: string,
+  orderNum: string,
+  paid: boolean,
+) => {
+  setPaymentSucceeded(paid);
+
+  // Only fulfil stock and digital delivery after confirmed payment
+  if (paid) {
+    await supabase
+      .from("orders")
+      .update({
+        status: "paid",
+      })
+      .eq("id", orderId);
+
+    await supabase
+      .from("payments")
+      .update({
+        status: "success",
+      })
+      .eq("order_id", orderId);
+
+    // Reduce stock only after payment succeeds
     for (const item of cart) {
-      if (item.product.track_inventory && item.product.product_type === "physical") {
+      if (
+        item.product.track_inventory &&
+        item.product.product_type === "physical"
+      ) {
         await supabase
           .from("products")
-          .update({ stock_quantity: Math.max(0, item.product.stock_quantity - item.quantity) })
-          .eq("id", item.product.id);
+          .update({
+            stock_quantity: Math.max(
+              0,
+              item.product.stock_quantity -
+                item.quantity,
+            ),
+          })
+          .eq(
+            "id",
+            item.product.id,
+          );
       }
     }
 
-    if (paid) {
-  await supabase
-    .from("orders")
-    .update({ status: "paid" })
-    .eq("id", orderId);
-
-  await supabase
-    .from("payments")
-    .update({ status: "success" })
-    .eq("order_id", orderId);
-
-  setPaymentSucceeded(true);
-} else {
-  setPaymentSucceeded(false);
-}
-
+    // Unlock digital downloads only after payment succeeds
     const digital = cart
-      .filter((item: any) => item.product.product_type === "digital" && item.product.digital_file_url)
-      .map((item: any) => ({ name: item.product.name, url: item.product.digital_file_url }));
+      .filter(
+        (item: any) =>
+          item.product.product_type ===
+            "digital" &&
+          item.product.digital_file_url,
+      )
+      .map((item: any) => ({
+        name: item.product.name,
+        url:
+          item.product
+            .digital_file_url,
+      }));
 
     setDigitalItems(digital);
-    setOrderNumber(orderNum);
-    setOrderComplete(true);
-    toast.success("Order placed successfully!");
+  } else {
+    // Pending/manual orders must not reduce stock
+    // or reveal paid digital downloads
+    setDigitalItems([]);
+  }
 
-    // Clear session cart so it doesn't linger after purchase
-    try { sessionStorage.removeItem(`storvo_cart_${slug}`); } catch {}
+  setOrderNumber(orderNum);
+  setOrderComplete(true);
 
-    // Send email notifications (non-blocking)
-try {
-  const { error } =
-    await supabase.functions.invoke(
-      "send-order-email",
-      {
-        body: {
-          orderId,
-        },
-      },
+  toast.success(
+    paid
+      ? "Payment successful! Order confirmed."
+      : "Order placed successfully!",
+  );
+
+  // Clear session cart after order creation
+  try {
+    sessionStorage.removeItem(
+      `storvo_cart_${slug}`,
     );
+  } catch {}
 
-  setEmailConfirmationSent(
-    !error,
-  );
-} catch {
-  setEmailConfirmationSent(
-    false,
-  );
-}  };
+  // Attempt email notification and only report success if confirmed
+  try {
+    const { error } =
+      await supabase.functions.invoke(
+        "send-order-email",
+        {
+          body: {
+            orderId,
+          },
+        },
+      );
+
+    setEmailConfirmationSent(
+      !error,
+    );
+  } catch {
+    setEmailConfirmationSent(
+      false,
+    );
+  }
+};
 
   const createOrderRecord = async () => {
     const { data: customer, error: custErr } = await supabase
@@ -183,24 +251,52 @@ try {
     return { order, orderNum };
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.email && paystackEnabled) {
-      toast.error("Email is required for card payment.");
-      return;
-    }
-    setLoading(true);
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    try {
-      const { order, orderNum } = await createOrderRecord();
-      setPlacedOrder({ id: order.id, num: orderNum });
+  if (
+    selectedPaymentMethod === "paystack" &&
+    !form.email
+  ) {
+    toast.error(
+      "Email is required for online payment.",
+    );
+    return;
+  }
 
-      if (paystackEnabled && form.email) {
-        // Open Paystack inline popup
-        const handler = window.PaystackPop.setup({
+  if (
+    selectedPaymentMethod === "paystack" &&
+    !paystackAvailable
+  ) {
+    toast.error(
+      "Online payment is temporarily unavailable. Please try again.",
+    );
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const { order, orderNum } =
+      await createOrderRecord();
+
+    setPlacedOrder({
+      id: order.id,
+      num: orderNum,
+    });
+
+    if (
+      selectedPaymentMethod === "paystack" &&
+      paystackAvailable &&
+      form.email
+    ) {
+      const handler =
+        window.PaystackPop.setup({
           key: paystackPublicKey,
           email: form.email,
-          amount: Math.round(orderTotal * 100), // kobo
+          amount: Math.round(
+            orderTotal * 100,
+          ),
           currency: "NGN",
           ref: `order_${order.id}_${Date.now()}`,
           metadata: {
@@ -210,29 +306,56 @@ try {
             customer_phone: form.phone,
           },
           ...(store.paystack_subaccount_code
-            ? { subaccount: store.paystack_subaccount_code, bearer: "subaccount" }
+            ? {
+                subaccount:
+                  store.paystack_subaccount_code,
+                bearer: "subaccount",
+              }
             : {}),
+
           onSuccess: async () => {
-            await finishOrder(order.id, orderNum, true);
+            await finishOrder(
+              order.id,
+              orderNum,
+              true,
+            );
           },
+
           onCancel: async () => {
-            // Keep the order as pending (COD fallback)
-            toast.info("Payment cancelled. Order placed as pending - the seller will contact you.");
-            await finishOrder(order.id, orderNum, false);
+            toast.info(
+              paymentMode === "both"
+                ? "Payment cancelled. Your order remains pending."
+                : "Payment cancelled. Your order has not been paid.",
+            );
+
+            await finishOrder(
+              order.id,
+              orderNum,
+              false,
+            );
           },
         });
-        handler.openIframe();
-        setLoading(false);
-      } else {
-        // COD / manual payment flow
-        await finishOrder(order.id, orderNum, false);
-        setLoading(false);
-      }
-    } catch (error: any) {
-      toast.error(error.message);
+
+      handler.openIframe();
+      setLoading(false);
+    } else {
+      await finishOrder(
+        order.id,
+        orderNum,
+        false,
+      );
+
       setLoading(false);
     }
-  };
+  } catch (error: any) {
+    toast.error(
+      error?.message ||
+        "Unable to place order.",
+    );
+
+    setLoading(false);
+  }
+};
 
   if (orderComplete) {
     const hasDigital = digitalItems.length > 0;
@@ -402,8 +525,7 @@ try {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="font-display text-2xl font-bold text-foreground">Checkout</h1>
-          {paystackEnabled && (
-            <span className="ml-auto flex items-center gap-1 text-xs text-emerald-600 font-medium">
+          {selectedPaymentMethod === "paystack" && allowPaystack && (            <span className="ml-auto flex items-center gap-1 text-xs text-emerald-600 font-medium">
               <Lock className="h-3 w-3" /> Secured by Paystack
             </span>
           )}
@@ -441,7 +563,7 @@ try {
                 </div>
                 <div>
                   <Label htmlFor="email">
-                    Email{paystackEnabled ? " (required for card payment)" : " (optional)"}
+Email{selectedPaymentMethod === "paystack" ? " (required for online payment)" : " (optional)"}
                   </Label>
                   <Input
                     id="email"
@@ -449,10 +571,12 @@ try {
                     type="email"
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    required={paystackEnabled}
-                    maxLength={255}
-                    placeholder={paystackEnabled ? "you@example.com" : "Optional"}
-                  />
+required={selectedPaymentMethod === "paystack"}                    maxLength={255}
+placeholder={
+  selectedPaymentMethod === "paystack"
+    ? "you@example.com"
+    : "Optional"
+}                  />
                 </div>
                 {hasPhysicalItems && (
                   <>
@@ -529,30 +653,95 @@ try {
                   <span style={{ color: brandColor }}>{formatCurrency(orderTotal)}</span>
                 </div>
               </div>
+{paymentMode === "both" && (
+  <div className="mt-5 space-y-3">
+    <p className="text-sm font-semibold text-foreground">
+      How would you like to pay?
+    </p>
 
-              <Button
-                form="checkout-form"
-                type="submit"
-                size="lg"
-                data-testid="button-place-order"
-                className="mt-6 w-full transition-all duration-150 active:scale-95"
-                style={{ background: brandColor }}
-                disabled={loading}
-              >
-                {loading ? (
-                  <><span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent inline-block" /> Processing...</>
-                ) : paystackEnabled ? (
-                  `Pay ${formatCurrency(orderTotal)}`
-                ) : (
-                  `Place Order · ${formatCurrency(orderTotal)}`
-                )}
-              </Button>
+    <button
+      type="button"
+      onClick={() =>
+        setSelectedPaymentMethod("paystack")
+      }
+      className={`w-full rounded-xl border p-4 text-left transition ${
+        selectedPaymentMethod === "paystack"
+          ? "border-primary bg-primary/5"
+          : "border-border"
+      }`}
+    >
+      <p className="font-semibold">
+        Pay online
+      </p>
 
-              {!paystackEnabled && (
-                <p className="mt-2 text-center text-xs text-muted-foreground">
-                  The seller will confirm your order and payment details via WhatsApp.
-                </p>
-              )}
+      <p className="mt-1 text-xs text-muted-foreground">
+        Pay securely online with Paystack.
+      </p>
+    </button>
+
+    <button
+      type="button"
+      onClick={() =>
+        setSelectedPaymentMethod("manual")
+      }
+      className={`w-full rounded-xl border p-4 text-left transition ${
+        selectedPaymentMethod === "manual"
+          ? "border-primary bg-primary/5"
+          : "border-border"
+      }`}
+    >
+      <p className="font-semibold">
+        Place order and pay manually
+      </p>
+
+      <p className="mt-1 text-xs text-muted-foreground">
+        The seller will confirm payment
+        and delivery with you.
+      </p>
+    </button>
+  </div>
+)}
+
+<Button
+  form="checkout-form"
+  type="submit"
+  size="lg"
+  data-testid="button-place-order"
+  className="mt-6 w-full transition-all duration-150 active:scale-95"
+  style={{ background: brandColor }}
+  disabled={loading}
+>
+  {loading ? (
+    <>
+      <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent inline-block" />
+      Processing...
+    </>
+  ) : selectedPaymentMethod === "paystack" ? (
+    `Pay ${formatCurrency(orderTotal)}`
+  ) : (
+    `Place Order · ${formatCurrency(orderTotal)}`
+  )}
+</Button>
+
+{selectedPaymentMethod === "manual" &&
+  allowManual && (
+    <p className="mt-2 text-center text-xs text-muted-foreground">
+      The seller will confirm your order
+      and payment details directly with you.
+    </p>
+  )}
+
+{selectedPaymentMethod === "paystack" &&
+  allowPaystack && (
+    <p className="mt-2 text-center text-xs text-muted-foreground">
+      Your order will be confirmed after
+      successful online payment.
+    </p>
+  )}
+                  
+
+     
+              
             </div>
           </div>
         </div>
